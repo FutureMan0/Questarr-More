@@ -112,9 +112,31 @@ describe("CompactGameCard", () => {
     renderWithProviders(<CompactGameCard game={mockGame} onViewDetails={onViewDetails} />);
 
     // Info button is wrapped in a tooltip, but the button content is accessible via the icon mock or aria-label
-    const infoButton = screen.getByLabelText("View details");
+    const infoButton = screen.getByLabelText(`View details for ${mockGame.title}`);
     fireEvent.click(infoButton);
 
     expect(onViewDetails).toHaveBeenCalledWith("1");
+  });
+
+  describe("dynamic aria-labels for status button", () => {
+    it.each([
+      { status: "wanted" as const, expectedLabel: "Owned", expectedNext: "owned" },
+      { status: "owned" as const, expectedLabel: "Completed", expectedNext: "completed" },
+      { status: "completed" as const, expectedLabel: "Wanted", expectedNext: "wanted" },
+    ])(
+      "shows aria-label 'Mark $title as $expectedLabel' when status is $status",
+      ({ status, expectedLabel, expectedNext }) => {
+        const onStatusChange = vi.fn();
+        renderWithProviders(
+          <CompactGameCard game={{ ...mockGame, status }} onStatusChange={onStatusChange} />
+        );
+
+        const btn = screen.getByLabelText(`Mark ${mockGame.title} as ${expectedLabel}`);
+        expect(btn).toBeInTheDocument();
+
+        fireEvent.click(btn);
+        expect(onStatusChange).toHaveBeenCalledWith(mockGame.id, expectedNext);
+      }
+    );
   });
 });

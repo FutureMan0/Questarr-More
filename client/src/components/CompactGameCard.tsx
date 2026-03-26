@@ -47,6 +47,12 @@ function getReleaseStatus(game: Game): {
   };
 }
 
+const getNextStatusInfo = (status: GameStatus): { id: GameStatus; label: string } => {
+  if (status === "wanted") return { id: "owned", label: "Owned" };
+  if (status === "owned") return { id: "completed", label: "Completed" };
+  return { id: "wanted", label: "Wanted" };
+};
+
 const CompactGameCard = ({
   game,
   onStatusChange,
@@ -100,9 +106,7 @@ const CompactGameCard = ({
   });
 
   const handleStatusClick = () => {
-    const nextStatus: GameStatus =
-      game.status === "wanted" ? "owned" : game.status === "owned" ? "completed" : "wanted";
-    onStatusChange?.(game.id, nextStatus);
+    onStatusChange?.(game.id, getNextStatusInfo(game.status).id);
   };
 
   const handleDetailsClick = () => {
@@ -285,7 +289,7 @@ const CompactGameCard = ({
                   )}
                   onClick={handleDownloadClick}
                   disabled={addGameMutation.isPending}
-                  aria-label="Download game"
+                  aria-label={`Download ${game.title}`}
                 >
                   {addGameMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -307,6 +311,7 @@ const CompactGameCard = ({
                   : "h-8 text-xs"
               )}
               onClick={handleStatusClick}
+              aria-label={`Mark ${game.title} as ${getNextStatusInfo(game.status).label}`}
             >
               {density !== "comfortable" ? (
                 game.status === "wanted" ? (
@@ -316,12 +321,8 @@ const CompactGameCard = ({
                 ) : (
                   <span title="Mark Wanted">★</span>
                 )
-              ) : game.status === "wanted" ? (
-                "Mark Owned"
-              ) : game.status === "owned" ? (
-                "Mark Completed"
               ) : (
-                "Mark Wanted"
+                `Mark ${getNextStatusInfo(game.status).label}`
               )}
             </Button>
           )}
@@ -333,7 +334,7 @@ const CompactGameCard = ({
                 variant="ghost"
                 className={cn("transition-all", density !== "comfortable" ? "h-6 w-6" : "h-8 w-8")}
                 onClick={handleDetailsClick}
-                aria-label="View details"
+                aria-label={`View details for ${game.title}`}
               >
                 <Info className={density !== "comfortable" ? "w-3 h-3" : "w-4 h-4"} />
               </Button>
@@ -352,7 +353,7 @@ const CompactGameCard = ({
                     density !== "comfortable" ? "h-6 w-6" : "h-8 w-8"
                   )}
                   onClick={handleToggleHidden}
-                  aria-label={game.hidden ? "Unhide game" : "Hide game"}
+                  aria-label={game.hidden ? `Unhide ${game.title}` : `Hide ${game.title}`}
                 >
                   {game.hidden ? (
                     <Eye className={density !== "comfortable" ? "w-3 h-3" : "w-4 h-4"} />
