@@ -52,8 +52,9 @@
 ### Dashboard
 
 Your central hub for recent activity, collection overview and downloading available games.
-[![Dashboard](images/Screenshots/dashboard.png)](images/Screenshots/dashboard.png)
-[![Search and download](images/Screenshots/download_modal.png)](images/Screenshots/download_modal.png)
+
+<a href="images/Screenshots/dashboard.png"><img src="images/Screenshots/dashboard.png" /></a>
+<a href="images/Screenshots/download_modal.png"><img src="images/Screenshots/download_modal.png" /></a>
 
 ### Discover Games
 
@@ -76,12 +77,13 @@ Manage your wanted and owned games.
 ### Calendar
 
 Keep track of upcoming releases.
-[![Calendar](images/Screenshots/calendar.png)](images/Screenshots/calendar.png)
+<a href="images/Screenshots/calendar.png"><img src="images/Screenshots/calendar.png" /></a>
 
 ### Downloads Queue (WIP)
 
 Monitor your downloaders' active downloads and history.
-[![Downloads](images/Screenshots/downloads.png)](images/Screenshots/downloads.png)
+
+<a href="images/Screenshots/downloads.png"><img src="images/Screenshots/downloads.png" /></a>
 
 ### Settings
 
@@ -92,7 +94,7 @@ Configure indexers, downloaders, and application preferences.
   <a href="images/Screenshots/downloaders.png"><img src="images/Screenshots/downloaders.png" width="49%" /></a> 
 </p>
 
-[![Settings](images/Screenshots/settings.png)](images/Screenshots/settings.png)
+<a href="images/Screenshots/settings.png"><img src="images/Screenshots/settings.png" /></a>
 
 </details>
 
