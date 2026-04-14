@@ -1,8 +1,21 @@
 # Unraid: Questarr More aus dem Git-Projekt
 
-## Fehler: `No such image: questarr-more:local`
+## Ein Klick: Update im Docker-UI (Standard)
 
-Das Template nutzt **nur** ein **selbst gebautes** Image. Unraid lädt **nichts** von Docker Hub/GHCR dafür.
+Das Template **`questarr-more.xml`** nutzt das fertige Image **`ghcr.io/futureman0/questarr-more:latest`**. Bei jedem Push auf den Branch **`main`** baut GitHub Actions das Image neu und überschreibt den Tag **`latest`**.
+
+**Auf Unraid:** **Docker** → Container **Questarr-More** → **Aktualisieren** / **Update** (oder im Kontextmenü **Update**). Unraid zieht dann das neue Image und startet den Container neu — **ohne** Terminal und **ohne** lokales `docker build`.
+
+- **Öffentliches Repo / öffentliches GHCR-Paket:** meist reicht das so.
+- **Privates GitHub-Paket:** einmalig auf dem Unraid-Terminal `docker login ghcr.io` (Personal Access Token mit `read:packages` als Passwort).
+
+Wenn du stattdessen **lokal aus Git** bauen willst, siehe unten **„Lokales Image (`questarr-more:local`)“** und **Variante A — Docker Compose**.
+
+---
+
+## Lokales Image (`questarr-more:local`)
+
+Nur nötig, wenn du **kein** GHCR-Image verwendest und das Image selbst baust. Unraid meldet sonst z. B. `No such image: questarr-more:local`.
 
 **Einmalig auf dem Unraid-Terminal oder per SSH:**
 
@@ -27,9 +40,9 @@ docker images | grep questarr-more
 # questarr-more   local   …
 ```
 
-Erst danach im Unraid-Docker-UI **Add Container** → Template **Questarr-More** → **Apply**.
+Im Docker-UI dann im Template **`Repository`** auf `questarr-more:local` stellen (oder eigenes Compose nutzen).
 
-Ohne Build: nutze stattdessen **`docker compose -f docker-compose.unraid.yml up -d --build`** (baut und startet in einem Schritt).
+Ohne manuellen Build: **`docker compose -f docker-compose.unraid.yml up -d --build`** (baut und startet in einem Schritt).
 
 ---
 
@@ -125,7 +138,9 @@ sh scripts/unraid-update.sh
 
 ## Automatisches Update (Push auf `main` → Unraid)
 
-Wenn du nach jedem **Push auf den Branch `main`** auf GitHub den Unraid-Server **per SSH** aktualisieren willst, nutzt das Repo den Workflow **`.github/workflows/deploy-unraid.yml`**. Er ruft auf dem Server **`scripts/unraid-update.sh`** auf (Git pull, `docker compose build`, `up -d --force-recreate`).
+**Einfachste Variante:** Siehe oben **„Ein Klick: Update im Docker-UI“** — GitHub baut bei Push auf `main` das GHCR-Image (**`.github/workflows/publish-ghcr-main.yml`**); auf Unraid reicht **Update** am Container.
+
+**Optional (SSH auf den Server):** Wenn du nach jedem Push stattdessen **direkt auf dem Unraid** `git pull` und **lokal** bauen willst, nutzt das Repo **`.github/workflows/deploy-unraid.yml`**. Er ruft **`scripts/unraid-update.sh`** auf (Git pull, `docker compose build`, `up -d --force-recreate`).
 
 ### Voraussetzungen auf Unraid
 
@@ -163,28 +178,19 @@ Unter **Actions** den Workflow **Deploy to Unraid** manuell mit **Run workflow**
 
 Die Datei **`unraid/questarr-more.xml`** ist ein **Community-Template-kompatibles** XML für _Apps → Docker → Add Container_.
 
-### Schritt 1: Image lokal bauen
+**Standard:** Das Image **`ghcr.io/futureman0/questarr-more:latest`** wird beim ersten Start gezogen; Updates über **Docker → Questarr-More → Update** (nach neuem Build auf `main`).
 
-Im geklonten Projekt auf dem Unraid-Terminal:
-
-```bash
-cd /mnt/user/docker/questarr-more
-docker build -t questarr-more:local .
-```
-
-Ohne diesen Schritt existiert das Tag `questarr-more:local` nicht — Unraid würde sonst versuchen, ein Image von einer Registry zu ziehen.
-
-### Schritt 2: Template installieren (siehe Abschnitt oben)
+### Schritt 1: Template installieren (siehe Abschnitt oben)
 
 Die XML muss unter **`/boot/config/plugins/dockerMan/templates-user/questarr-more.xml`** liegen (curl oder SMB). Erst danach erscheint **Questarr-More** unter **User templates**.
 
-### Schritt 3: Container anlegen
+### Schritt 2: Container anlegen
 
 1. Docker → **Add Container**
 2. **Template** → **Questarr-More** wählen.
-3. Wichtig: Im Template ist **`--pull=never`** gesetzt — es wird **nur** das lokale Image `questarr-more:local` verwendet (dafür zuerst **Schritt 1** `docker build` ausführen).
+3. **Apply** — Unraid lädt **`latest`** von GHCR (bei privatem Paket vorher `docker login ghcr.io`).
 
-### Schritt 4: Pfade prüfen
+### Schritt 3: Pfade prüfen
 
 - **Daten-Pfad** (Standard): `/mnt/user/appdata/questarr-more`
 - **PUID/PGID** an deine Shares anpassen (häufig `1000`/`1000` oder Unraid-Standard `99`/`100` — dann müssen Ordnerrechte passen).
@@ -200,5 +206,5 @@ Die **Raw-URL** zum erneuten Herunterladen der Vorlage (z. B. nach Änderungen i
 ## Hinweise
 
 - **SSL**: Port `9898` ist wie beim upstream Questarr vorgesehen; HTTP bleibt Standard `5000`.
-- **Stable Image ohne Build**: Wer das offizielle Questarr-Image nutzen will, verwendet das bestehende Template `unraid/questarr.xml` (GHCR `ghcr.io/doezer/questarr`). **Questarr More** aus Git ist bewusst als **`questarr-more:local`** umgesetzt.
-- Bei Problemen: Docker-Log des Containers prüfen; Build-Logs mit `docker compose -f docker-compose.unraid.yml build` erneut ansehen.
+- **Offizielles Questarr (ohne „More“):** Template `unraid/questarr.xml` / Image `ghcr.io/doezer/questarr`. **Questarr More** im Docker-UI nutzt **`ghcr.io/futureman0/questarr-more:latest`** (oder bei Bedarf ein **lokales** Image, siehe oben).
+- Bei Problemen: Docker-Log des Containers prüfen; bei lokalem Build: `docker compose -f docker-compose.unraid.yml build` erneut ansehen.

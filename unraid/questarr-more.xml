@@ -1,29 +1,26 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>Questarr-More</Name>
-  <Repository>questarr-more:local</Repository>
-  <Registry/>
+  <Repository>ghcr.io/futureman0/questarr-more:latest</Repository>
+  <Registry>https://ghcr.io</Registry>
   <Network>bridge</Network>
   <Shell>sh</Shell>
   <Privileged>false</Privileged>
   <Support>https://github.com/FutureMan0/Questarr-More/issues</Support>
   <Project>https://github.com/FutureMan0/Questarr-More</Project>
   <Overview>
-    **Zwingend vor „Apply“:** Image lokal bauen, sonst: `No such image: questarr-more:local`.
-    Auf Unraid (Terminal/SSH), nachdem das Repo geklont ist:
-    `cd /mnt/user/docker/questarr-more &amp;&amp; docker build -t questarr-more:local .`
-    Prüfen: `docker images | grep questarr-more`
-    Erst dann dieses Template anwenden. Es gibt **kein** Pull von einer Registry (`--pull=never`).
-    Details: GitHub → `unraid/README.md`
+    **Standard:** Image kommt von **GitHub Container Registry** (`ghcr.io`). Nach einem Push auf `main` baut GitHub Actions automatisch **`latest`** — auf Unraid unter **Docker** beim Container **Questarr-More** auf **Aktualisieren / Update** tippen (oder Container bearbeiten und **Anwenden**), damit das neue Image gezogen wird.
+    **Privates GHCR-Paket:** Einmalig auf Unraid `docker login ghcr.io` (siehe `unraid/README.md`).
+    **Ohne Registry:** Lokal bauen und Image `questarr-more:local` nutzen — Anleitung in `unraid/README.md` (Variante „lokales Image“).
   </Overview>
   <Category>MediaApp:</Category>
   <WebUI>http://[IP]:[PORT:5000]/</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/FutureMan0/Questarr-More/main/unraid/questarr-more.xml</TemplateURL>
   <Icon>https://raw.githubusercontent.com/Doezer/Questarr/images/Questarr_icon.png</Icon>
-  <ExtraParams>--pull=never --restart=unless-stopped</ExtraParams>
+  <ExtraParams>--restart=unless-stopped</ExtraParams>
   <Description>
     Questarr More: Discovery, Bibliothek, Request-Liste, Downloader, optional Auto-Import, RSS/xREL, Light/Dark &amp; Mobile-UI.
-    Dieses Template erwartet ein **lokal gebautes** Image `questarr-more:local` aus deinem Git-Checkout.
+    Standard-Image: **ghcr.io/futureman0/questarr-more:latest** (wird bei Push auf `main` gebaut).
   </Description>
   <Networking>
     <Mode>bridge</Mode>
@@ -68,6 +65,11 @@
       <Name>SSL_PORT</Name>
       <Mode/>
     </Variable>
+    <Variable>
+      <Value>Europe/Berlin</Value>
+      <Name>TZ</Name>
+      <Mode/>
+    </Variable>
   </Environment>
   <Labels/>
   <Config Name="HTTP Port" Target="5000" Default="5000" Mode="tcp" Description="Web-UI HTTP-Port." Type="Port" Display="always" Required="true" Mask="false">5000</Config>
@@ -77,4 +79,6 @@
   <Config Name="PGID" Target="PGID" Default="1000" Mode="" Description="Gruppen-ID für Dateirechte." Type="Variable" Display="always" Required="true" Mask="false">1000</Config>
   <Config Name="SQLite DB Pfad" Target="SQLITE_DB_PATH" Default="/app/data/sqlite.db" Mode="" Description="Pfad zur SQLite-Datei **im Container**." Type="Variable" Display="advanced" Required="false" Mask="false">/app/data/sqlite.db</Config>
   <Config Name="SSL Port" Target="SSL_PORT" Default="9898" Mode="" Description="Interner SSL-Port — muss zum gemappten HTTPS-Port passen." Type="Variable" Display="advanced" Required="false" Mask="false">9898</Config>
+  <Config Name="Zeitzone" Target="TZ" Default="Europe/Berlin" Mode="" Description="z. B. Europe/Berlin" Type="Variable" Display="advanced" Required="false" Mask="false">Europe/Berlin</Config>
+  <Config Name="Games-Pfad (optional)" Target="/games" Default="/mnt/user/games" Mode="rw" Description="Optional: Host-Ordner für die Spiele-Bibliothek." Type="Path" Display="always" Required="false" Mask="false">/mnt/user/games</Config>
 </Container>
