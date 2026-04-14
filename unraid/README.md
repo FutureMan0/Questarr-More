@@ -114,6 +114,49 @@ docker compose -f docker-compose.unraid.yml build --no-cache
 docker compose -f docker-compose.unraid.yml up -d
 ```
 
+**Oder ein Skript (manuell oder per Cron):**
+
+```bash
+cd /mnt/user/docker/questarr-more
+sh scripts/unraid-update.sh
+```
+
+---
+
+## Automatisches Update (Push auf `main` → Unraid)
+
+Wenn du nach jedem **Push auf den Branch `main`** auf GitHub den Unraid-Server **per SSH** aktualisieren willst, nutzt das Repo den Workflow **`.github/workflows/deploy-unraid.yml`**. Er ruft auf dem Server **`scripts/unraid-update.sh`** auf (Git pull, `docker compose build`, `up -d --force-recreate`).
+
+### Voraussetzungen auf Unraid
+
+- Repo wie unter **Variante A** geklont; Pfad merken (z. B. `/mnt/user/docker/questarr-more`).
+- **Compose** statt parallelem **Docker-UI-Container** auf denselben Ports — sonst **Port-Konflikt**. Bestehenden UI-Container einmal stoppen/entfernen, wenn du komplett auf Compose umstellst.
+- Optional einmal: Upstream setzen, damit `git pull` zuverlässig ist:
+
+  ```bash
+  cd /mnt/user/docker/questarr-more
+  git branch --set-upstream-to=origin/main main
+  ```
+
+### GitHub Secrets (Repository → Settings → Secrets and variables → Actions)
+
+| Secret | Inhalt |
+|--------|--------|
+| `UNRAID_HOST` | IP oder Hostname (z. B. `10.0.0.121` oder Tailscale-Name) |
+| `UNRAID_USER` | z. B. `root` |
+| `UNRAID_SSH_KEY` | **Privater** SSH-Key (komplette Datei inkl. `BEGIN`/`END`) |
+| `UNRAID_REPO_PATH` | *(optional)* Absoluter Pfad zum Checkout; Standard im Workflow: `/mnt/user/docker/questarr-more` |
+
+**SSH-Key (Beispiel):** Auf dem PC `ssh-keygen -t ed25519 -f ~/.ssh/unraid_questarr_deploy -N ""`, Public Key nach Unraid (`ssh-copy-id` oder manuell in `~/.ssh/authorized_keys`), **privaten** Key als `UNRAID_SSH_KEY` hinterlegen.
+
+**Sicherheit:** SSH für `root` nicht ungeschützt ins offene Internet stellen; **Tailscale/VPN** oder Firewall-Regeln bevorzugen.
+
+**SSH-Port ≠ 22:** In `.github/workflows/deploy-unraid.yml` beim Schritt `appleboy/ssh-action` die Option `port:` ergänzen (siehe Kommentar im Workflow).
+
+### Test
+
+Unter **Actions** den Workflow **Deploy to Unraid** manuell mit **Run workflow** starten (`workflow_dispatch`). Nach erfolgreichem Lauf sollte der Container auf Unraid neu gebaut und neu erstellt sein.
+
 ---
 
 ## Variante B — Unraid-Template (Docker-UI)

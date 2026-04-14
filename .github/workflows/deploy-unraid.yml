@@ -1,0 +1,48 @@
+# Nach Push auf main: per SSH auf Unraid scripts/unraid-update.sh ausführen.
+#
+# GitHub → Settings → Secrets and variables → Actions:
+#   UNRAID_HOST      — IP oder Hostname (z. B. 10.0.0.121, oder Tailscale-Name)
+#   UNRAID_USER      — z. B. root
+#   UNRAID_SSH_KEY   — privater Deploy-Key (komplette Datei inkl. BEGIN/END-Zeilen)
+# Optional:
+#   UNRAID_REPO_PATH — Git-Checkout auf dem Server (Default: /mnt/user/docker/questarr-more)
+# SSH-Port ≠ 22: in diesem Workflow bei appleboy/ssh-action `port:` setzen (Standard ist 22).
+#
+# Einrichtung SSH (Beispiel — Key auf dem PC erzeugen, Public Key nach Unraid):
+#   ssh-keygen -t ed25519 -f ~/.ssh/unraid_questarr_deploy -N ""
+#   ssh-copy-id -i ~/.ssh/unraid_questarr_deploy.pub root@UNRAID_IP
+#   cat ~/.ssh/unraid_questarr_deploy | als Secret UNRAID_SSH_KEY einfügen
+#
+# Ohne diese Secrets schlägt der Workflow fehl — bis zur Einrichtung nur workflow_dispatch
+# testen oder den Workflow temporär deaktivieren.
+
+name: Deploy to Unraid
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-unraid
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH — Pull, Build, Compose recreate
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.UNRAID_HOST }}
+          username: ${{ secrets.UNRAID_USER }}
+          key: ${{ secrets.UNRAID_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -eu
+            REPO="${{ secrets.UNRAID_REPO_PATH }}"
+            REPO="${REPO:-/mnt/user/docker/questarr-more}"
+            cd "$REPO"
+            export QUESTARR_REPO="$REPO"
+            export FORCE_BUILD=1
+            sh scripts/unraid-update.sh
