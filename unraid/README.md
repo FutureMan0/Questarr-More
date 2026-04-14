@@ -1,6 +1,37 @@
 # Unraid: Questarr More aus dem Git-Projekt
 
-Zwei einfache Wege, auf Unraid einen Container aus **diesem Repository** zu betreiben.
+## „Ich sehe das Template in der Liste nicht“
+
+**Normal.** Unraid holt **keine** Templates automatisch von GitHub. Die Dropdown-Liste **User templates** zeigt nur XML-Dateien, die **auf deinem Unraid-Server** liegen (plus ggf. Einträge von Plugins).
+
+So bekommst du **Questarr-More** in die Liste:
+
+### Option 1 — Eine Zeile auf dem Unraid-Terminal (oder SSH)
+
+Ersetze die URL, falls dein Branch/Repo anders heißt:
+
+```bash
+mkdir -p /boot/config/plugins/dockerMan/templates-user
+curl -fsSL -o /boot/config/plugins/dockerMan/templates-user/questarr-more.xml \
+  "https://raw.githubusercontent.com/FutureMan0/Questarr-More/main/unraid/questarr-more.xml"
+```
+
+Dann: **Docker** → Seite neu laden (F5) → **Add Container** → unter **User templates** erscheint **Questarr-More** (Name aus dem XML).
+
+### Option 2 — Per SMB (Flash-Share)
+
+1. Am PC: Netzlaufwerk zum Unraid-Share **flash** verbinden.
+2. Ordner öffnen: `config\plugins\dockerMan\templates-user\` (falls nicht da: anlegen).
+3. Die Datei **`questarr-more.xml`** aus dem Repo dort hineinlegen (oder von GitHub Raw speichern).
+4. Unraid **Docker** neu öffnen → **Add Container** → Template **Questarr-More** wählen.
+
+### Option 3 — Ohne Template
+
+Einfach **Variante A (Docker Compose)** unten nutzen — braucht keinen Eintrag in der Template-Liste.
+
+---
+
+Zwei Wege, den Container aus **diesem Repository** zu betreiben.
 
 ## Voraussetzungen
 
@@ -67,25 +98,26 @@ docker build -t questarr-more:local .
 
 Ohne diesen Schritt existiert das Tag `questarr-more:local` nicht — Unraid würde sonst versuchen, ein Image von einer Registry zu ziehen.
 
-### Schritt 2: Template einbinden
+### Schritt 2: Template installieren (siehe Abschnitt oben)
+
+Die XML muss unter **`/boot/config/plugins/dockerMan/templates-user/questarr-more.xml`** liegen (curl oder SMB). Erst danach erscheint **Questarr-More** unter **User templates**.
+
+### Schritt 3: Container anlegen
 
 1. Docker → **Add Container**
-2. Oben **Template** → **User templates** / „Select a template“ → ggf. **New template** aus **XML** oder Datei aus dem Share laden.
-3. Alternativ: XML nach `/boot/config/plugins/dockerMan/templates-user/` kopieren und in der Docker-UI auswählen (je nach Unraid-Version leicht unterschiedlich).
-4. Wichtig: Im Template ist **`--pull=never`** gesetzt, damit **nur** dein lokales Image `questarr-more:local` verwendet wird.
+2. **Template** → **Questarr-More** wählen.
+3. Wichtig: Im Template ist **`--pull=never`** gesetzt — es wird **nur** das lokale Image `questarr-more:local` verwendet (dafür zuerst **Schritt 1** `docker build` ausführen).
 
-### Schritt 3: Pfade prüfen
+### Schritt 4: Pfade prüfen
 
 - **Daten-Pfad** (Standard): `/mnt/user/appdata/questarr-more`
 - **PUID/PGID** an deine Shares anpassen (häufig `1000`/`1000` oder Unraid-Standard `99`/`100` — dann müssen Ordnerrechte passen).
 
-### Template aus dem Git (Raw-URL)
+Die **Raw-URL** zum erneuten Herunterladen der Vorlage (z. B. nach Änderungen im Repo):
 
-Wenn das Repo öffentlich auf GitHub liegt, kannst du in der Docker-UI eine Template-URL eintragen, z. B.:
+`https://raw.githubusercontent.com/FutureMan0/Questarr-More/main/unraid/questarr-more.xml`
 
-`https://raw.githubusercontent.com/DEIN_USER/Questarr-More/main/unraid/questarr-more.xml`
-
-Danach `TemplateURL` in der XML-Datei lokal auf dieselbe URL setzen, wenn du „Update template“ in der UI nutzen willst.
+(Einfach erneut mit `curl` nach `templates-user/` schreiben.)
 
 ---
 

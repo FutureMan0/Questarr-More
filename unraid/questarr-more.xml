@@ -6,8 +6,8 @@
   <Network>bridge</Network>
   <Shell>sh</Shell>
   <Privileged>false</Privileged>
-  <Support>https://github.com/Doezer/Questarr/issues</Support>
-  <Project>https://github.com/Doezer/Questarr</Project>
+  <Support>https://github.com/FutureMan0/Questarr-More/issues</Support>
+  <Project>https://github.com/FutureMan0/Questarr-More</Project>
   <Overview>
     Questarr More — erweiterter Spiel-Bibliotheksmanager (Fork/Build aus Git).
     **Vor dem ersten Start:** Im geklonten Repo auf Unraid ausführen: `docker build -t questarr-more:local .`
@@ -16,7 +16,7 @@
   </Overview>
   <Category>MediaApp:</Category>
   <WebUI>http://[IP]:[PORT:5000]/</WebUI>
-  <TemplateURL/>
+  <TemplateURL>https://raw.githubusercontent.com/FutureMan0/Questarr-More/main/unraid/questarr-more.xml</TemplateURL>
   <Icon>https://raw.githubusercontent.com/Doezer/Questarr/images/Questarr_icon.png</Icon>
   <ExtraParams>--pull=never --restart=unless-stopped --health-cmd="node -e \"require('http').get('http://localhost:5000/api/health', (r) =&gt; process.exit(r.statusCode === 200 ? 0 : 1))\"" --health-interval=30s --health-timeout=10s --health-retries=3 --health-start-period=40s</ExtraParams>
   <Description>
