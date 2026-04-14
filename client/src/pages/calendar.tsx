@@ -167,36 +167,40 @@ export default function CalendarPage() {
 
   return (
     <div className="h-full overflow-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Release Calendar</h1>
-          <p className="text-muted-foreground">Track upcoming game releases</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={goToToday}>
-            Today
-          </Button>
-          <Select value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="year">Year</SelectItem>
-              <SelectItem value="month">Month</SelectItem>
-              <SelectItem value="week">Week</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <div className="sticky top-0 z-30 -mx-2 mb-6 rounded-xl px-2 py-2 backdrop-blur-md">
+        <div className="glass-surface rounded-xl px-4 py-4 md:px-5">
+          <div className="flex justify-between items-center mb-5">
+            <div>
+              <h1 className="text-3xl font-bold">Release Calendar</h1>
+              <p className="text-muted-foreground">Track upcoming game releases</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm" onClick={goToToday}>
+                Today
+              </Button>
+              <Select value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="year">Year</SelectItem>
+                  <SelectItem value="month">Month</SelectItem>
+                  <SelectItem value="week">Week</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-      <div className="flex items-center justify-between mb-6">
-        <Button variant="ghost" size="icon" onClick={navigatePrevious} aria-label="Previous period">
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <h2 className="text-2xl font-semibold">{getTitle()}</h2>
-        <Button variant="ghost" size="icon" onClick={navigateNext} aria-label="Next period">
-          <ChevronRight className="h-5 w-5" />
-        </Button>
+          <div className="flex items-center justify-between">
+            <Button variant="ghost" size="icon" onClick={navigatePrevious} aria-label="Previous period">
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <h2 className="text-2xl font-semibold">{getTitle()}</h2>
+            <Button variant="ghost" size="icon" onClick={navigateNext} aria-label="Next period">
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       {isLoading ? (

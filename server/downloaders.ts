@@ -11,6 +11,7 @@ import https from "https";
 import parseTorrent from "parse-torrent";
 import { XMLParser } from "fast-xml-parser";
 import { isSafeUrl, safeFetch } from "./ssrf.js";
+import { buildDownloadRoutingMeta } from "../shared/download-routing.js";
 
 const DOWNLOAD_CLIENT_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36";
@@ -119,6 +120,9 @@ interface DownloadRequest {
   downloadPath?: string;
   priority?: number;
   downloadType?: "torrent" | "usenet";
+  gameTitle?: string;
+  gamePlatforms?: string[] | null;
+  platformHint?: string;
 }
 
 interface DownloaderClient {
@@ -3036,6 +3040,34 @@ export class QBittorrentClient implements DownloaderClient {
 }
 
 export class DownloaderManager {
+  private static appendConsoleFolder(basePath: string, consoleSlug: string): string {
+    if (!basePath || consoleSlug === "Unknown") return basePath;
+    const separator = basePath.includes("\\") ? "\\" : "/";
+    const normalizedBase = basePath.replace(/[\\/]+$/, "");
+    return `${normalizedBase}${separator}${consoleSlug}`;
+  }
+
+  private static prepareDownloadRequest(downloader: Downloader, request: DownloadRequest): DownloadRequest {
+    const routing = buildDownloadRoutingMeta({
+      releaseTitle: request.title,
+      gameTitle: request.gameTitle,
+      gamePlatforms: request.gamePlatforms,
+      platformHint: request.platformHint,
+    });
+
+    const basePath = request.downloadPath || downloader.downloadPath || undefined;
+    const downloadPath =
+      basePath && routing.consoleSlug !== "Unknown"
+        ? this.appendConsoleFolder(basePath, routing.consoleSlug)
+        : basePath;
+
+    return {
+      ...request,
+      title: routing.sceneTitle,
+      downloadPath,
+    };
+  }
+
   static createClient(downloader: Downloader): DownloaderClient {
     switch (downloader.type) {
       case "transmission":
@@ -3070,8 +3102,9 @@ export class DownloaderManager {
     request: DownloadRequest
   ): Promise<{ success: boolean; id?: string; message: string }> {
     try {
+      const preparedRequest = this.prepareDownloadRequest(downloader, request);
       const client = this.createClient(downloader);
-      return await client.addDownload(request);
+      return await client.addDownload(preparedRequest);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       return { success: false, message: errorMessage };

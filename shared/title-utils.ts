@@ -207,6 +207,10 @@ export function parseReleaseMetadata(releaseName: string): ReleaseMetadata {
   else if (/\b(xbox\s*series|xbsx|xss)\b/i.test(cleaned)) platform = "Xbox Series";
   else if (/\b(xbox|x360|xbox360)\b/i.test(cleaned)) platform = "Xbox";
   else if (/\b(switch|nsw)\b/i.test(cleaned)) platform = "Switch";
+  else if (/\b(wii[\s._-]*u|wiiu)\b/i.test(cleaned)) platform = "Wii U";
+  else if (/\b(wii)\b/i.test(cleaned)) platform = "Wii";
+  else if (/\b(3ds|nintendo[\s._-]*3ds)\b/i.test(cleaned)) platform = "3DS";
+  else if (/\b(nds|nintendo[\s._-]*ds|(?<!\d)ds(?!\d))\b/i.test(cleaned)) platform = "DS";
   else if (/\b(pc|windows|win64|win32)\b/i.test(cleaned)) platform = "PC";
   else if (/\b(linux)\b/i.test(cleaned)) platform = "Linux";
   else if (/\b(mac|macos|osx)\b/i.test(cleaned)) platform = "Mac";

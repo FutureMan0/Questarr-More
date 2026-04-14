@@ -102,6 +102,7 @@ interface GameDownloadDialogProps {
   game: Game | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  preferredDownloaderId?: string;
 }
 
 function formatDate(dateString: string): string {
@@ -115,7 +116,12 @@ function formatDate(dateString: string): string {
 import { apiRequest } from "@/lib/queryClient";
 import { formatBytes, formatAge, isUsenetItem } from "@/lib/downloads-utils";
 
-export default function GameDownloadDialog({ game, open, onOpenChange }: GameDownloadDialogProps) {
+export default function GameDownloadDialog({
+  game,
+  open,
+  onOpenChange,
+  preferredDownloaderId,
+}: GameDownloadDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
@@ -135,6 +141,11 @@ export default function GameDownloadDialog({ game, open, onOpenChange }: GameDow
     new Set(["main", "update", "dlc", "extra"] as DownloadCategory[])
   );
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [showAdvancedRouting, setShowAdvancedRouting] = useState(false);
+  const [overrideCategory, setOverrideCategory] = useState("");
+  const [overrideDownloadPath, setOverrideDownloadPath] = useState("");
+  const [overridePlatformHint, setOverridePlatformHint] = useState("");
+  const [selectedDownloaderId, setSelectedDownloaderId] = useState<string>("auto");
 
   const setDefaults = useCallback(() => {
     setSearchQuery("");
@@ -149,7 +160,12 @@ export default function GameDownloadDialog({ game, open, onOpenChange }: GameDow
     setShowFilters(false);
     setVisibleCategories(new Set(["main", "update", "dlc", "extra"] as DownloadCategory[]));
     setSelectedGroups([]);
-  }, []);
+    setShowAdvancedRouting(false);
+    setOverrideCategory("");
+    setOverrideDownloadPath("");
+    setOverridePlatformHint("");
+    setSelectedDownloaderId(preferredDownloaderId ?? "auto");
+  }, [preferredDownloaderId]);
 
   const { data: userSettings } = useQuery<UserSettings>({
     queryKey: ["/api/settings"],
@@ -177,10 +193,11 @@ export default function GameDownloadDialog({ game, open, onOpenChange }: GameDow
     if (open && game) {
       setSearchQuery(game.title);
       applyDownloadRules();
+      setSelectedDownloaderId(preferredDownloaderId ?? "auto");
     } else if (!open) {
       setDefaults();
     }
-  }, [open, game, applyDownloadRules, setDefaults]);
+  }, [open, game, applyDownloadRules, setDefaults, preferredDownloaderId]);
 
   const { data: searchResults, isLoading: isSearching } = useQuery<SearchResult>({
     queryKey: [`/api/search?query=${encodeURIComponent(searchQuery)}`],
@@ -196,6 +213,18 @@ export default function GameDownloadDialog({ game, open, onOpenChange }: GameDow
     queryKey: ["/api/downloaders/enabled"],
     enabled: open,
   });
+
+  const downloaderOptionValueSet = useMemo(
+    () => new Set(downloaders.map((downloader) => downloader.id)),
+    [downloaders]
+  );
+
+  useEffect(() => {
+    if (selectedDownloaderId === "auto") return;
+    if (!downloaderOptionValueSet.has(selectedDownloaderId)) {
+      setSelectedDownloaderId("auto");
+    }
+  }, [downloaderOptionValueSet, selectedDownloaderId]);
 
   // Categorize downloads
   const categorizedDownloads = useMemo(() => {
@@ -287,6 +316,9 @@ export default function GameDownloadDialog({ game, open, onOpenChange }: GameDow
           title: download.title,
           gameId: game?.id,
           downloadType: isUsenetItem(download) ? "usenet" : "torrent",
+          category: overrideCategory.trim() || undefined,
+          downloadPath: overrideDownloadPath.trim() || undefined,
+          platformHint: overridePlatformHint.trim() || undefined,
         });
         results.push(await response.json());
       }
@@ -329,6 +361,9 @@ export default function GameDownloadDialog({ game, open, onOpenChange }: GameDow
         title: download.title,
         gameId: game?.id,
         downloadType: isUsenetItem(download) ? "usenet" : "torrent",
+        category: overrideCategory.trim() || undefined,
+        downloadPath: overrideDownloadPath.trim() || undefined,
+        platformHint: overridePlatformHint.trim() || undefined,
       });
       return response.json();
     },
@@ -348,7 +383,48 @@ export default function GameDownloadDialog({ game, open, onOpenChange }: GameDow
         variant: "destructive",
       });
     },
+    onSettled: () => {
+      setDownloadingGuid(null);
+    },
   });
+
+  const getCompatibleDownloaders = useCallback(
+    (isUsenet: boolean) =>
+      downloaders.filter((downloader) =>
+        isUsenet
+          ? ["sabnzbd", "nzbget"].includes(downloader.type)
+          : ["transmission", "rtorrent", "qbittorrent"].includes(downloader.type)
+      ),
+    [downloaders]
+  );
+
+  const handleRequest = (download: DownloadItem) => {
+    const isUsenet = isUsenetItem(download);
+    const compatibleDownloaders = getCompatibleDownloaders(isUsenet);
+
+    if (selectedDownloaderId !== "auto") {
+      const chosenProvider = compatibleDownloaders.find((d) => d.id === selectedDownloaderId);
+      if (!chosenProvider) {
+        toast({
+          title: "Provider is not compatible",
+          description: isUsenet
+            ? "Please select a Usenet downloader."
+            : "Please select a Torrent downloader.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setDownloadingGuid(download.guid || download.link);
+      sendToDownloaderMutation.mutate({
+        download,
+        downloaderId: chosenProvider.id,
+      });
+      return;
+    }
+
+    handleDownload(download);
+  };
 
   const handleDownload = (download: DownloadItem) => {
     // Check if this is a main game download and we have updates available
@@ -587,6 +663,19 @@ export default function GameDownloadDialog({ game, open, onOpenChange }: GameDow
           />
 
           <div className="flex items-center gap-2">
+            <Select value={selectedDownloaderId} onValueChange={setSelectedDownloaderId}>
+              <SelectTrigger className="w-[230px]">
+                <SelectValue placeholder="Auto Provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Auto Provider</SelectItem>
+                {downloaders.map((downloader) => (
+                  <SelectItem key={downloader.id} value={downloader.id}>
+                    {downloader.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button
               variant="outline"
               size="sm"
@@ -604,6 +693,15 @@ export default function GameDownloadDialog({ game, open, onOpenChange }: GameDow
             <Badge variant="outline" className="text-xs capitalize">
               Sorted by: {sortBy} ({sortOrder === "asc" ? "Asc" : "Desc"})
             </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAdvancedRouting((prev) => !prev)}
+              className="flex items-center gap-2"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              {showAdvancedRouting ? "Hide Advanced Routing" : "Advanced Routing"}
+            </Button>
           </div>
 
           {showFilters && (
@@ -684,6 +782,44 @@ export default function GameDownloadDialog({ game, open, onOpenChange }: GameDow
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {showAdvancedRouting && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-md bg-muted/30">
+              <div className="space-y-2">
+                <Label htmlFor="override-category" className="text-sm">
+                  Category Override
+                </Label>
+                <Input
+                  id="override-category"
+                  placeholder="e.g. games-switch"
+                  value={overrideCategory}
+                  onChange={(e) => setOverrideCategory(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="override-path" className="text-sm">
+                  Download Path Override
+                </Label>
+                <Input
+                  id="override-path"
+                  placeholder="e.g. /downloads/games"
+                  value={overrideDownloadPath}
+                  onChange={(e) => setOverrideDownloadPath(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="override-platform" className="text-sm">
+                  Platform Hint
+                </Label>
+                <Input
+                  id="override-platform"
+                  placeholder="e.g. Switch, WiiU, DS"
+                  value={overridePlatformHint}
+                  onChange={(e) => setOverridePlatformHint(e.target.value)}
+                />
               </div>
             </div>
           )}
@@ -935,12 +1071,13 @@ export default function GameDownloadDialog({ game, open, onOpenChange }: GameDow
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      onClick={() => handleDownload(download)}
+                                      onClick={() => handleRequest(download)}
                                       disabled={
-                                        downloadingGuid === (download.guid || download.link)
+                                        downloadingGuid === (download.guid || download.link) ||
+                                        sendToDownloaderMutation.isPending
                                       }
                                       className="h-9 w-9 hover:bg-primary hover:text-primary-foreground transition-all"
-                                      aria-label={`Download ${download.title.replace(/[._]/g, " ")}`}
+                                      aria-label={`Request ${download.title.replace(/[._]/g, " ")}`}
                                     >
                                       {downloadingGuid === (download.guid || download.link) ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -972,14 +1109,8 @@ export default function GameDownloadDialog({ game, open, onOpenChange }: GameDow
                                         </DropdownMenuItem>
 
                                         {(() => {
-                                          const compatibleDownloaders = downloaders.filter((d) =>
+                                          const compatibleDownloaders = getCompatibleDownloaders(
                                             isUsenet
-                                              ? ["sabnzbd", "nzbget"].includes(d.type)
-                                              : [
-                                                  "transmission",
-                                                  "rtorrent",
-                                                  "qbittorrent",
-                                                ].includes(d.type)
                                           );
 
                                           if (compatibleDownloaders.length <= 1) {

@@ -44,10 +44,23 @@
 - **🔒 Privacy Focused**: No external dependencies (even google fonts are locally hosted) and hardened security (CSP, SSRF protection), as well as SSL support.
 - **✨ Clean Interface**: UI optimized for browsing game covers and metadata, with light/dark mode.
 
+## Latest Updates
+
+- **Dashboard & Cards Refresh**: Jellyseerr-inspired dashboard rows (`Recently Added`, `Recent Requests`, `Trending`, `All`) with updated card proportions, console badges and clearer status chips.
+- **Global Top Search**: Search from the header across Dashboard/Discover/Library/Downloads/Calendar/Wishlist with route-aware results view.
+- **Hybrid Metadata Search**: Combined provider flow for `Library + IGDB + ScreenScraper`, provider toggles, artwork preference selector, and better deduping.
+- **Search Reliability Improvements**: Live refetch behavior, explicit loading states while providers are still querying, and manual refresh action in results.
+- **Result Prioritization UX**: Search results now show `Wishlist` and `Library` sections first; console groups below are collapsible.
+- **Download Routing Improvements**: Multi-console folder routing and scene-like rename support in the download pipeline.
+
 ## Screenshots
 
 <details open>
 <summary><b>👀 See the app in action</b></summary>
+
+### Latest Dashboard (Updated UI)
+
+<a href="assets/c__Users_luisb_AppData_Roaming_Cursor_User_workspaceStorage_0fb28d9de6cc61b672c75cf04a1eee73_images_image-18130880-f827-445e-8d7e-04de657007d0.png"><img src="assets/c__Users_luisb_AppData_Roaming_Cursor_User_workspaceStorage_0fb28d9de6cc61b672c75cf04a1eee73_images_image-18130880-f827-445e-8d7e-04de657007d0.png" /></a>
 
 ### Dashboard
 
@@ -157,6 +170,20 @@ docker run -d -p 5000:5000 -v ./data:/app/data --name questarr ghcr.io/doezer/qu
 3. **Access the application:**
    Open your browser to `http://localhost:5000`
 
+#### Beta channel
+
+Use the beta image if you want to test upcoming features before stable release:
+
+```bash
+docker run -d -p 5000:5000 -v ./data:/app/data --name questarr-beta ghcr.io/doezer/questarr:beta
+```
+
+For compose-based beta testing you can use:
+
+```bash
+docker compose -f docker-compose.beta.yml up -d
+```
+
 #### Upgrading from v1.0 (PostgreSQL)
 
 If you are upgrading from an older version that used PostgreSQL, you need to migrate your data.
@@ -186,6 +213,17 @@ If you are upgrading from an older version that used PostgreSQL, you need to mig
     ```
 
 See [docs/MIGRATION.md](docs/MIGRATION.md) for more details.
+
+### unRAID templates
+
+- Stable template: `unraid/questarr.xml`
+- Beta template: `unraid/questarr-beta.xml`
+
+Both templates are preconfigured with:
+- `PUID`/`PGID` permission mapping
+- persistent `/app/data` volume for SQLite
+- optional SSL port mapping (`9898`)
+- healthcheck defaults
 
 ## Configuration
 

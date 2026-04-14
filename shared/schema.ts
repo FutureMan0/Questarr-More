@@ -304,6 +304,13 @@ export interface Config {
     source?: "env" | "database";
     clientId?: string;
   };
+  metadataProviders?: {
+    screenscraper?: {
+      configured: boolean;
+      source?: "env" | "database";
+      username?: string;
+    };
+  };
   xrel?: {
     apiBase: string;
   };

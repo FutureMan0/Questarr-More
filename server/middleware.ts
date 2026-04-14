@@ -389,6 +389,11 @@ export const sanitizeDownloaderDownloadData = [
     .trim()
     .isIn(["torrent", "usenet"])
     .withMessage("Invalid download type"),
+  body("platformHint")
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage("Platform hint must be at most 100 characters"),
   body("downloadPath")
     .optional()
     .trim()

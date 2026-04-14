@@ -141,20 +141,41 @@ export default function DiscoverPage() {
     return map;
   }, [localGames]);
 
+  const igdbToLocalGameMap = useMemo(() => {
+    const map = new Map<number, Game>();
+    localGames.forEach((g) => {
+      if (g.igdbId) map.set(g.igdbId, g);
+    });
+    return map;
+  }, [localGames]);
+
   const filterGames = useCallback(
     (games: Game[]) => {
-      return games.filter((g: Game) => {
-        if (hiddenIgdbIds.has(g.igdbId)) return false;
+      return games
+        .filter((g: Game) => {
+          if (hiddenIgdbIds.has(g.igdbId)) return false;
 
-        if (hideOwned && ownedIgdbIds.has(g.igdbId)) return false;
+          if (hideOwned && ownedIgdbIds.has(g.igdbId)) return false;
 
-        if (hideWanted && wantedIgdbIds.has(g.igdbId)) return false;
+          if (hideWanted && wantedIgdbIds.has(g.igdbId)) return false;
 
-        return true;
-      });
+          return true;
+        })
+        .map((g: Game) => {
+          const localMatch = igdbToLocalGameMap.get(g.igdbId);
+          if (!localMatch) return g;
+
+          // Merge local status/identity so card badges and actions reflect real collection state.
+          return {
+            ...g,
+            id: localMatch.id,
+            status: localMatch.status,
+            hidden: localMatch.hidden,
+          };
+        });
     },
 
-    [hiddenIgdbIds, ownedIgdbIds, wantedIgdbIds, hideOwned, hideWanted]
+    [hiddenIgdbIds, ownedIgdbIds, wantedIgdbIds, hideOwned, hideWanted, igdbToLocalGameMap]
   );
 
   // Fetch available genres with caching and error handling
@@ -535,20 +556,26 @@ export default function DiscoverPage() {
     <div className="h-full w-full overflow-x-hidden overflow-y-auto" data-testid="discover-page">
       <div className="p-6 space-y-8 max-w-full">
         <Tabs defaultValue="igdb" className="space-y-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h1 className="text-2xl font-bold mb-2">Discover Games</h1>
-              <p className="text-muted-foreground">
-                Explore popular games, new releases, and find your next adventure
-              </p>
-            </div>
+          <div className="sticky top-0 z-30 -mx-2 rounded-xl px-2 py-2 backdrop-blur-md">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="glass-surface w-full rounded-xl px-4 py-3 md:px-5">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <h1 className="text-2xl font-bold mb-2">Discover Games</h1>
+                    <p className="text-muted-foreground">
+                      Explore popular games, new releases, and find your next adventure
+                    </p>
+                  </div>
 
-            <TabsList>
-              <TabsTrigger value="igdb">IGDB Discovery</TabsTrigger>
-              <TabsTrigger value="rss" className="gap-2">
-                <Rss className="h-4 w-4" /> RSS Feeds
-              </TabsTrigger>
-            </TabsList>
+                  <TabsList className="border border-white/10 bg-slate-900/70">
+                    <TabsTrigger value="igdb">IGDB Discovery</TabsTrigger>
+                    <TabsTrigger value="rss" className="gap-2">
+                      <Rss className="h-4 w-4" /> RSS Feeds
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+              </div>
+            </div>
           </div>
 
           <TabsContent value="igdb" className="space-y-8">
@@ -686,7 +713,7 @@ export default function DiscoverPage() {
           </TabsContent>
 
           <TabsContent value="rss" className="space-y-6">
-            <div className="flex justify-between items-center bg-muted/30 p-4 rounded-lg">
+            <div className="glass-surface flex justify-between items-center rounded-lg p-4">
               <div>
                 <h3 className="font-semibold">RSS Feed Discovery</h3>
                 <p className="text-sm text-muted-foreground">

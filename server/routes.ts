@@ -62,7 +62,9 @@ const upload = multer({
 });
 import { searchAllIndexers } from "./search.js";
 import { xrelClient, DEFAULT_XREL_BASE, ALLOWED_XREL_DOMAINS } from "./xrel.js";
+import { screenScraperClient } from "./screenscraper.js";
 import { normalizeTitle, cleanReleaseName } from "../shared/title-utils.js";
+import { buildDownloadRoutingMeta } from "../shared/download-routing.js";
 import archiver from "archiver";
 import helmet from "helmet";
 
@@ -144,6 +146,18 @@ function validatePaginationParams(query: { limit?: string; offset?: string }): {
   const limit = Math.min(Math.max(1, parseInt(query.limit as string) || 20), 100);
   const offset = Math.max(0, parseInt(query.offset as string) || 0);
   return { limit, offset };
+}
+
+async function getGameDownloadContext(gameId: string | undefined) {
+  if (!gameId) {
+    return { gameTitle: undefined, gamePlatforms: undefined };
+  }
+
+  const game = await storage.getGame(gameId);
+  return {
+    gameTitle: game?.title,
+    gamePlatforms: game?.platforms,
+  };
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -707,6 +721,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           source,
           clientId,
         },
+        metadataProviders: {
+          screenscraper: {
+            configured: await screenScraperClient.isConfigured(),
+            source:
+              (await storage.getSystemConfig("screenscraper.user")) &&
+              (await storage.getSystemConfig("screenscraper.password"))
+                ? "database"
+                : appConfig.screenscraper.isConfigured
+                  ? "env"
+                  : undefined,
+            username:
+              (await storage.getSystemConfig("screenscraper.user")) ||
+              appConfig.screenscraper.user ||
+              undefined,
+          },
+        },
         xrel: { apiBase: xrelApiBase },
       };
       res.json(config);
@@ -784,6 +814,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Game collection routes
+
+  // Aggregated dashboard sections (Recently Added, Requests, Trending, All)
+  app.get("/api/dashboard/sections", authenticateToken, async (req, res) => {
+    try {
+      const { search, includeHidden, limit } = req.query;
+      const userId = req.user!.id;
+      const showHidden = includeHidden === "true";
+      const sectionLimit = Math.min(Math.max(parseInt(String(limit || 18), 10) || 18, 1), 50);
+      const searchTerm = typeof search === "string" ? search.trim().toLowerCase() : "";
+
+      const games = searchTerm
+        ? await storage.searchUserGames(userId, searchTerm, showHidden)
+        : await storage.getUserGames(userId, showHidden);
+
+      const requestStatuses = new Set(["wanted", "downloading", "pending", "requested"]);
+      const recentlyAdded = games
+        .filter((game) => !requestStatuses.has((game.status || "").toLowerCase()))
+        .slice(0, sectionLimit);
+      const recentRequests = games
+        .filter((game) => requestStatuses.has((game.status || "").toLowerCase()))
+        .slice(0, sectionLimit);
+
+      const trendingGames = await igdbClient.getPopularGames(sectionLimit);
+      const trending = trendingGames
+        .map((game) => igdbClient.formatGameData(game))
+        .filter((game) => {
+          if (!searchTerm) return true;
+          const title = typeof game.title === "string" ? game.title.toLowerCase() : "";
+          return title.includes(searchTerm);
+        });
+
+      res.json({
+        recentlyAdded,
+        recentRequests,
+        trending,
+        all: games,
+      });
+    } catch (error) {
+      routesLogger.error({ error }, "error fetching dashboard sections");
+      res.status(500).json({ error: "Failed to fetch dashboard sections" });
+    }
+  });
 
   // Get all games in collection
   app.get("/api/games", authenticateToken, async (req, res) => {
@@ -1069,6 +1141,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error) {
         routesLogger.error({ error }, "error searching IGDB");
         res.status(500).json({ error: "Failed to search games" });
+      }
+    }
+  );
+
+  // ScreenScraper metadata search (especially useful for retro titles)
+  app.get(
+    "/api/metadata/screenscraper/search",
+    sanitizeSearchQuery,
+    validateRequest,
+    async (req: Request, res: Response) => {
+      try {
+        const { q, limit, media } = req.query;
+        if (!q || typeof q !== "string") {
+          return res.status(400).json({ error: "Search query required" });
+        }
+
+        const limitNum = limit ? Math.min(Math.max(parseInt(String(limit), 10) || 20, 1), 60) : 20;
+        const mediaPreference =
+          media === "box-3d" || media === "cartridge" || media === "screenshot" || media === "box-2d"
+            ? media
+            : "box-2d";
+
+        const games = await screenScraperClient.searchGames(q, {
+          limit: limitNum,
+          mediaPreference,
+        });
+        res.json(games);
+      } catch (error) {
+        routesLogger.error({ error }, "error searching ScreenScraper");
+        res.status(500).json({ error: "Failed to search ScreenScraper metadata" });
       }
     }
   );
@@ -1728,7 +1830,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const { url, title, category, downloadPath, priority, downloadType } = req.body;
+        const { url, title, category, downloadPath, priority, downloadType, gameId, platformHint } =
+          req.body;
 
         if (!url || !title) {
           return res.status(400).json({ error: "URL and title are required" });
@@ -1743,6 +1846,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ error: "Downloader is disabled" });
         }
 
+        const gameContext = await getGameDownloadContext(gameId);
         const result = await DownloaderManager.addDownload(downloader, {
           url,
           title,
@@ -1750,6 +1854,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           downloadPath,
           priority,
           downloadType,
+          gameTitle: gameContext.gameTitle,
+          gamePlatforms: gameContext.gamePlatforms,
+          platformHint,
         });
 
         res.json(result);
@@ -1948,7 +2055,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     validateRequest,
     async (req: Request, res: Response) => {
       try {
-        const { url, title, category, downloadPath, priority, gameId, downloadType } = req.body;
+        const { url, title, category, downloadPath, priority, gameId, downloadType, platformHint } =
+          req.body;
 
         if (!url || !title) {
           return res.status(400).json({ error: "URL and title are required" });
@@ -1959,6 +2067,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ error: "No downloaders configured" });
         }
 
+        const gameContext = await getGameDownloadContext(gameId);
+        const routingMeta = buildDownloadRoutingMeta({
+          releaseTitle: title,
+          gameTitle: gameContext.gameTitle,
+          gamePlatforms: gameContext.gamePlatforms,
+        });
+
         // Try downloaders by priority order with automatic fallback
         const result = await DownloaderManager.addDownloadWithFallback(enabledDownloaders, {
           url,
@@ -1967,6 +2082,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           downloadPath,
           priority,
           downloadType,
+          gameTitle: gameContext.gameTitle,
+          gamePlatforms: gameContext.gamePlatforms,
+          platformHint,
         });
 
         if (result && result.success === false) {
@@ -1981,7 +2099,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               gameId,
               downloaderId: result.downloaderId,
               downloadHash: result.id,
-              downloadTitle: title,
+              downloadTitle: routingMeta.sceneTitle,
               status: "downloading",
               downloadType: downloadType || "torrent",
             });
@@ -2167,6 +2285,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       routesLogger.error({ error }, "Failed to update IGDB credentials");
       res.status(500).json({ error: "Failed to update IGDB credentials" });
+    }
+  });
+
+  // ScreenScraper credentials (user/password) configuration endpoint
+  app.post("/api/settings/screenscraper", authenticateToken, async (req, res) => {
+    try {
+      const { username, password } = req.body as { username?: string; password?: string };
+      const trimmedUser = (username || "").trim();
+      const masked = password === "********";
+      const trimmedPassword = (password || "").trim();
+      const hasNewPassword = trimmedPassword.length > 0 && !masked;
+
+      if (!trimmedUser) {
+        return res.status(400).json({ error: "ScreenScraper username is required" });
+      }
+
+      const existingPassword = await storage.getSystemConfig("screenscraper.password");
+      if (!existingPassword && !hasNewPassword) {
+        return res.status(400).json({ error: "ScreenScraper password is required" });
+      }
+
+      await storage.setSystemConfig("screenscraper.user", trimmedUser);
+      if (hasNewPassword) {
+        await storage.setSystemConfig("screenscraper.password", trimmedPassword);
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      routesLogger.error({ error }, "Failed to update ScreenScraper credentials");
+      res.status(500).json({ error: "Failed to update ScreenScraper credentials" });
     }
   });
 

@@ -101,7 +101,7 @@
 
   --sidebar-border: 210 20% 85%;
 
-  --sidebar-primary: 217 91% 60%;
+  --sidebar-primary: 217 82% 54%;
 
   --sidebar-primary-foreground: 210 20% 98%;
 
@@ -117,7 +117,7 @@
 
   --popover-border: 210 20% 82%;
 
-  --primary: 217 91% 60%;
+  --primary: 217 82% 54%;
 
   --primary-foreground: 210 20% 98%;
 
@@ -215,39 +215,39 @@
   --elevate-1: rgba(255, 255, 255, 0.04);
   --elevate-2: rgba(255, 255, 255, 0.09);
 
-  --background: 210 24% 16%;
+  --background: 224 44% 8%;
 
   --foreground: 210 20% 98%;
 
-  --border: 210 20% 20%;
+  --border: 220 28% 22%;
 
-  --card: 210 20% 25%;
+  --card: 222 34% 14%;
 
   --card-foreground: 210 20% 98%;
 
-  --card-border: 210 20% 30%;
+  --card-border: 220 26% 24%;
 
-  --sidebar: 210 24% 16%;
+  --sidebar: 224 38% 10%;
 
   --sidebar-foreground: 210 20% 98%;
 
-  --sidebar-border: 210 20% 20%;
+  --sidebar-border: 221 28% 22%;
 
   --sidebar-primary: 217 91% 60%;
 
   --sidebar-primary-foreground: 210 20% 98%;
 
-  --sidebar-accent: 210 20% 30%;
+  --sidebar-accent: 223 30% 19%;
 
   --sidebar-accent-foreground: 210 20% 98%;
 
   --sidebar-ring: 217 91% 60%;
 
-  --popover: 210 20% 25%;
+  --popover: 222 32% 15%;
 
   --popover-foreground: 210 20% 98%;
 
-  --popover-border: 210 20% 30%;
+  --popover-border: 220 26% 24%;
 
   --primary: 217 91% 60%;
 
@@ -257,9 +257,9 @@
 
   --secondary-foreground: 210 20% 98%;
 
-  --muted: 210 20% 30%;
+  --muted: 221 24% 20%;
 
-  --muted-foreground: 210 20% 65%;
+  --muted-foreground: 215 17% 72%;
 
   --accent: 45 93% 47%;
 
@@ -297,6 +297,11 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(1200px 500px at 10% -10%, rgba(56, 189, 248, 0.08), transparent 55%),
+      radial-gradient(900px 450px at 95% 0%, rgba(99, 102, 241, 0.1), transparent 55%),
+      linear-gradient(180deg, rgba(7, 18, 42, 0.75) 0%, rgba(3, 10, 25, 0.92) 100%);
+    background-attachment: fixed;
     color: hsl(var(--foreground));
   }
 
@@ -422,5 +427,16 @@
     aspect-ratio: 3 / 4;
     object-fit: cover;
     display: block;
+  }
+
+  .glass-surface {
+    background: linear-gradient(
+      140deg,
+      hsl(var(--card) / 0.74) 0%,
+      hsl(var(--card) / 0.56) 100%
+    );
+    border: 1px solid hsl(0 0% 100% / 0.12);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 16px 40px -28px rgba(2, 6, 23, 0.85);
   }
 }

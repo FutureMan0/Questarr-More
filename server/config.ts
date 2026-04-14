@@ -18,6 +18,11 @@ const envSchema = z.object({
   // IGDB API configuration (optional, but required for game discovery features)
   IGDB_CLIENT_ID: z.string().optional(),
   IGDB_CLIENT_SECRET: z.string().optional(),
+  // ScreenScraper API configuration (optional, mainly for retro metadata search)
+  SCREENSCRAPER_USER: z.string().optional(),
+  SCREENSCRAPER_PASSWORD: z.string().optional(),
+  SCREENSCRAPER_DEV_ID: z.string().optional(),
+  SCREENSCRAPER_DEV_PASSWORD: z.string().optional(),
 
   // Server configuration
   PORT: z
@@ -76,6 +81,18 @@ export const config = {
     clientId: env.IGDB_CLIENT_ID,
     clientSecret: env.IGDB_CLIENT_SECRET,
     isConfigured: !!(env.IGDB_CLIENT_ID && env.IGDB_CLIENT_SECRET),
+  },
+  screenscraper: {
+    user: env.SCREENSCRAPER_USER,
+    password: env.SCREENSCRAPER_PASSWORD,
+    devId: env.SCREENSCRAPER_DEV_ID,
+    devPassword: env.SCREENSCRAPER_DEV_PASSWORD,
+    isConfigured: !!(
+      env.SCREENSCRAPER_USER &&
+      env.SCREENSCRAPER_PASSWORD &&
+      env.SCREENSCRAPER_DEV_ID &&
+      env.SCREENSCRAPER_DEV_PASSWORD
+    ),
   },
   server: {
     port: env.PORT,

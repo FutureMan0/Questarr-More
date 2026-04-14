@@ -89,8 +89,8 @@ const GameCarouselSection = ({
         </div>
         <div className="flex gap-4 overflow-hidden">
           {Array.from({ length: 10 }).map((_, index) => (
-            <div key={index} className="flex-shrink-0 min-w-[150px] min-h-[200px]">
-              <Skeleton className="aspect-[3/4] w-full max-w-[225px] max-h-[300px] mx-auto rounded-md" />
+            <div key={index} className="flex-shrink-0 min-w-[220px] min-h-[250px]">
+              <Skeleton className="aspect-[9/16] w-full max-w-[280px] mx-auto rounded-xl" />
               <Skeleton className="h-4 mt-2 w-3/4 mx-auto" />
               <Skeleton className="h-3 mt-1 w-1/2 mx-auto" />
             </div>
@@ -216,11 +216,11 @@ const GameCarouselSection = ({
           })}
           aria-hidden={isFetching && !isLoading}
         >
-          <CarouselContent className="-ml-4 max-w-full">
+          <CarouselContent className="-ml-4 max-w-full items-stretch">
             {games.map((game) => (
               <CarouselItem
                 key={game.id}
-                className="pl-4 basis-1/3 sm:basis-1/5 md:basis-1/6 lg:basis-[12.5%] xl:basis-[10%]"
+                className="pl-4 h-full basis-[78%] sm:basis-[48%] md:basis-[36%] lg:basis-[28%] xl:basis-[22%] 2xl:basis-[18%]"
               >
                 <GameCard
                   game={game}
@@ -229,6 +229,7 @@ const GameCarouselSection = ({
                   onTrackGame={onTrackGame}
                   onToggleHidden={onToggleHidden}
                   isDiscovery={isDiscovery}
+                  layout="carousel"
                 />
               </CarouselItem>
             ))}

@@ -3,7 +3,7 @@ import GameCard from "./GameCard";
 import CompactGameCard from "./CompactGameCard";
 import { type Game } from "@shared/schema";
 import { type GameStatus } from "./StatusBadge";
-import { cn } from "@/lib/utils";
+import { cn, isDiscoveryId } from "@/lib/utils";
 
 interface GameGridProps {
   games: Game[];
@@ -103,15 +103,17 @@ export default function GameGrid({
       data-testid="grid-games"
       aria-busy={isFetching}
     >
-      {games.map((game) =>
-        viewMode === "list" ? (
+      {games.map((game) => {
+        const cardIsDiscovery = isDiscovery || isDiscoveryId(game.id);
+
+        return viewMode === "list" ? (
           <CompactGameCard
             key={game.id}
             game={game}
             onStatusChange={onStatusChange}
             onViewDetails={onViewDetails}
             onToggleHidden={onToggleHidden}
-            isDiscovery={isDiscovery}
+            isDiscovery={cardIsDiscovery}
             density={density}
           />
         ) : (
@@ -122,10 +124,10 @@ export default function GameGrid({
             onViewDetails={onViewDetails}
             onTrackGame={onTrackGame}
             onToggleHidden={onToggleHidden}
-            isDiscovery={isDiscovery}
+            isDiscovery={cardIsDiscovery}
           />
-        )
-      )}
+        );
+      })}
     </div>
   );
 }

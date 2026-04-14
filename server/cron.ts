@@ -5,6 +5,7 @@ import { notifyUser } from "./socket.js";
 import { DownloaderManager } from "./downloaders.js";
 import { searchAllIndexers } from "./search.js";
 import { xrelClient, DEFAULT_XREL_BASE } from "./xrel.js";
+import { buildDownloadRoutingMeta } from "../shared/download-routing.js";
 
 import { downloadRulesSchema } from "../shared/schema.js";
 import { categorizeDownload } from "../shared/download-categorizer.js";
@@ -545,9 +546,17 @@ async function checkAutoSearch() {
 
                 if (downloaders.length > 0) {
                   try {
+                    const routingMeta = buildDownloadRoutingMeta({
+                      releaseTitle: item.title,
+                      gameTitle: game.title,
+                      gamePlatforms: game.platforms,
+                    });
+
                     const result = await DownloaderManager.addDownloadWithFallback(downloaders, {
                       url: item.link,
                       title: item.title,
+                      gameTitle: game.title,
+                      gamePlatforms: game.platforms,
                     });
 
                     if (result && result.success && result.id && result.downloaderId) {
@@ -556,7 +565,7 @@ async function checkAutoSearch() {
                         gameId: game.id,
                         downloaderId: result.downloaderId,
                         downloadHash: result.id,
-                        downloadTitle: item.title,
+                        downloadTitle: routingMeta.sceneTitle,
                         status: "downloading",
                         downloadType: item.downloadType,
                       });

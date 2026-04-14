@@ -84,6 +84,9 @@ export default function SettingsPage() {
   const [igdbClientId, setIgdbClientId] = useState("");
   const [igdbClientSecret, setIgdbClientSecret] = useState("");
   const [showClientSecret, setShowClientSecret] = useState(false);
+  const [screenScraperUsername, setScreenScraperUsername] = useState("");
+  const [screenScraperPassword, setScreenScraperPassword] = useState("");
+  const [showScreenScraperPassword, setShowScreenScraperPassword] = useState(false);
   const [downloadRules, setDownloadRules] = useState<DownloadRules | null>(null);
   const [xrelSceneReleases, setXrelSceneReleases] = useState(true);
   const [xrelP2pReleases, setXrelP2pReleases] = useState(false);
@@ -124,6 +127,12 @@ export default function SettingsPage() {
     }
     if (config?.igdb.configured) {
       setIgdbClientSecret("");
+    }
+    if (config?.metadataProviders?.screenscraper?.username) {
+      setScreenScraperUsername(config.metadataProviders.screenscraper.username);
+    }
+    if (config?.metadataProviders?.screenscraper?.configured) {
+      setScreenScraperPassword("");
     }
   }, [userSettings, config]);
 
@@ -346,6 +355,30 @@ export default function SettingsPage() {
     },
   });
 
+  const updateScreenScraperMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/settings/screenscraper", {
+        username: screenScraperUsername,
+        password: screenScraperPassword,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "ScreenScraper Updated",
+        description: "Your ScreenScraper credentials have been saved.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/config"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const isLoading = configLoading || settingsLoading;
   const error = configError;
 
@@ -411,6 +444,28 @@ export default function SettingsPage() {
       return;
     }
     updateIgdbMutation.mutate();
+  };
+
+  const handleSaveScreenScraper = () => {
+    if (!screenScraperUsername) {
+      toast({
+        title: "Missing Credentials",
+        description: "Please provide your ScreenScraper username.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!config?.metadataProviders?.screenscraper?.configured && !screenScraperPassword) {
+      toast({
+        title: "Missing Credentials",
+        description: "Please provide your ScreenScraper password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateScreenScraperMutation.mutate();
   };
 
   if (isLoading) {
@@ -743,6 +798,120 @@ export default function SettingsPage() {
                       <>
                         <Key className="h-4 w-4" />
                         Save Credentials
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ScreenScraper Card */}
+            <Card id="screenscraper-config">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <Key className="h-5 w-5 text-muted-foreground" />
+                    <CardTitle className="text-lg">ScreenScraper API</CardTitle>
+                  </div>
+                </div>
+                <CardDescription>
+                  Retro-first metadata provider with strong cover-art support (2D/3D boxes, cartridge/CD
+                  art, screenshots).
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-col space-y-2 pb-4 border-b">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Status</span>
+                    {config?.metadataProviders?.screenscraper?.configured ? (
+                      <Badge
+                        variant={
+                          config.metadataProviders.screenscraper.source === "database"
+                            ? "default"
+                            : "secondary"
+                        }
+                      >
+                        {config.metadataProviders.screenscraper.source === "database"
+                          ? "Database (Active)"
+                          : "Environment Variable"}
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive">Not Configured</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Stored username/password override environment variables (
+                    <code>SCREENSCRAPER_USER</code>, <code>SCREENSCRAPER_PASSWORD</code>). For requests,
+                    server-side developer credentials are still required in env (
+                    <code>SCREENSCRAPER_DEV_ID</code>, <code>SCREENSCRAPER_DEV_PASSWORD</code>).
+                  </p>
+                </div>
+
+                <div className="space-y-4 pt-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="screenscraper-user">Username</Label>
+                    <Input
+                      id="screenscraper-user"
+                      placeholder="Enter your ScreenScraper username"
+                      value={screenScraperUsername}
+                      onChange={(e) => setScreenScraperUsername(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="screenscraper-password">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="screenscraper-password"
+                        type={showScreenScraperPassword ? "text" : "password"}
+                        placeholder={
+                          config?.metadataProviders?.screenscraper?.configured
+                            ? "********"
+                            : "Enter your ScreenScraper password"
+                        }
+                        value={screenScraperPassword}
+                        onChange={(e) => setScreenScraperPassword(e.target.value)}
+                        className="pr-10"
+                      />
+                      {screenScraperPassword && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowScreenScraperPassword(!showScreenScraperPassword)}
+                          aria-label={
+                            showScreenScraperPassword
+                              ? "Hide ScreenScraper password"
+                              : "Show ScreenScraper password"
+                          }
+                        >
+                          {showScreenScraperPassword ? (
+                            <EyeOff className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-4 border-t">
+                  <Button
+                    onClick={handleSaveScreenScraper}
+                    disabled={updateScreenScraperMutation.isPending}
+                    className="gap-2"
+                  >
+                    {updateScreenScraperMutation.isPending ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Key className="h-4 w-4" />
+                        Save ScreenScraper Credentials
                       </>
                     )}
                   </Button>

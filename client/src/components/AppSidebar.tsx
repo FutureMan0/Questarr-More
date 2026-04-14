@@ -109,6 +109,18 @@ export default function AppSidebar({ activeItem = "/", onNavigate }: AppSidebarP
   const { logout, user } = useAuth();
 
   const handleNavigation = (url: string) => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("q")) {
+      params.delete("q");
+      const nextSearch = params.toString();
+      const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}`;
+      window.history.replaceState({}, "", nextUrl);
+      window.dispatchEvent(
+        new CustomEvent("questarr-global-search", {
+          detail: { query: "" },
+        })
+      );
+    }
     onNavigate?.(url);
   };
 

@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Plus, Moon, Sun, HardDrive, AlertCircle } from "lucide-react";
-import AddGameModal from "./AddGameModal";
+import { Moon, Sun, HardDrive, AlertCircle, Search } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NotificationCenter } from "./NotificationCenter";
 import { useTheme } from "next-themes";
@@ -10,6 +9,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Link } from "wouter";
 import type { Config } from "@shared/schema";
+import { Input } from "@/components/ui/input";
+import { useLocation } from "wouter";
 
 interface HeaderProps {
   title?: string;
@@ -33,6 +34,17 @@ function formatBytes(bytes: number): string {
 export default function Header({ title = "Dashboard" }: HeaderProps) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [location] = useLocation();
+  const [headerSearchQuery, setHeaderSearchQuery] = useState("");
+  const searchableRoutes = new Set([
+    "/",
+    "/discover",
+    "/library",
+    "/downloads",
+    "/calendar",
+    "/wishlist",
+  ]);
+  const isSearchEnabledRoute = searchableRoutes.has(location);
 
   // Fetch storage info every 5 minutes
   const {
@@ -54,14 +66,40 @@ export default function Header({ title = "Dashboard" }: HeaderProps) {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (!isSearchEnabledRoute) {
+      setHeaderSearchQuery("");
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    setHeaderSearchQuery(params.get("q") || "");
+  }, [isSearchEnabledRoute, location]);
+
+  const syncGlobalSearch = (query: string) => {
+    const params = new URLSearchParams(window.location.search);
+    if (query.trim()) {
+      params.set("q", query.trim());
+    } else {
+      params.delete("q");
+    }
+    const newSearch = params.toString();
+    const nextUrl = `${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`;
+    window.history.replaceState({}, "", nextUrl);
+    window.dispatchEvent(
+      new CustomEvent("questarr-global-search", {
+        detail: { query },
+      })
+    );
+  };
+
   const handleThemeToggle = () => {
     setTheme(theme === "dark" ? "light" : "dark");
   };
 
   return (
     <div className="flex flex-col w-full z-10">
-      <header className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center gap-4">
+      <header className="glass-surface flex items-center justify-between border-b border-white/10 p-4">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
           <Tooltip>
             <TooltipTrigger asChild>
               <SidebarTrigger data-testid="button-sidebar-toggle" />
@@ -73,6 +111,31 @@ export default function Header({ title = "Dashboard" }: HeaderProps) {
           <h1 className="text-xl font-semibold" data-testid="text-page-title">
             {title}
           </h1>
+
+          {isSearchEnabledRoute && (
+            <div className="relative ml-2 w-full max-w-2xl">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={headerSearchQuery}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setHeaderSearchQuery(value);
+                  syncGlobalSearch(value);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    setHeaderSearchQuery("");
+                    syncGlobalSearch("");
+                    (event.currentTarget as HTMLInputElement).blur();
+                  }
+                }}
+                placeholder="Search games..."
+                className="h-10 rounded-full border-border/70 bg-background/70 pl-9 pr-3"
+                aria-label="Global game search"
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-4">
@@ -118,13 +181,6 @@ export default function Header({ title = "Dashboard" }: HeaderProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <AddGameModal>
-              <Button variant="default" size="sm" data-testid="button-add-game" className="gap-2">
-                <Plus className="w-4 h-4" />
-                Add Game
-              </Button>
-            </AddGameModal>
-
             <NotificationCenter />
 
             <Button

@@ -134,10 +134,38 @@ Carousel.displayName = "Carousel";
 
 const CarouselContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => {
-    const { carouselRef, orientation } = useCarousel();
+    const { carouselRef, orientation, api, canScrollNext, canScrollPrev } = useCarousel();
+    const lastWheelTsRef = React.useRef(0);
+
+    const handleWheel = React.useCallback(
+      (event: React.WheelEvent<HTMLDivElement>) => {
+        if (orientation !== "horizontal" || !api) return;
+        const target = event.target as HTMLElement | null;
+        const isDialogEvent = !!target?.closest("[role='dialog']");
+        const bodyScrollLocked = document.body.style.overflow === "hidden";
+        if (isDialogEvent || bodyScrollLocked) return;
+
+        // Only react to intentional horizontal gestures.
+        if (Math.abs(event.deltaX) < 10) return;
+        if (Math.abs(event.deltaX) <= Math.abs(event.deltaY) * 1.2) return;
+
+        const now = Date.now();
+        if (now - lastWheelTsRef.current < 140) return;
+        lastWheelTsRef.current = now;
+
+        if (event.deltaX > 0 && canScrollNext) {
+          event.preventDefault();
+          api.scrollNext();
+        } else if (event.deltaX < 0 && canScrollPrev) {
+          event.preventDefault();
+          api.scrollPrev();
+        }
+      },
+      [api, canScrollNext, canScrollPrev, orientation]
+    );
 
     return (
-      <div ref={carouselRef} className="overflow-hidden">
+      <div ref={carouselRef} className="overflow-hidden" onWheel={handleWheel}>
         <div
           ref={ref}
           className={cn(

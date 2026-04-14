@@ -257,6 +257,7 @@ class IGDBClient {
     if (!sanitizedQuery) return [];
 
     let attemptCount = 0;
+    const collected = new Map<number, IGDBGame>();
 
     // Try multiple search approaches to maximize results
     const searchApproaches = [
@@ -296,7 +297,12 @@ class IGDBClient {
             { approach: i + 1, query: sanitizedQuery, resultCount: results.length },
             `search approach ${i + 1} found ${results.length} results`
           );
-          return results;
+          results.forEach((game) => {
+            if (!collected.has(game.id)) {
+              collected.set(game.id, game);
+            }
+          });
+          // Keep trying other approaches to maximize recall.
         }
       } catch {
         igdbLogger.warn(
@@ -306,16 +312,7 @@ class IGDBClient {
       }
     }
 
-    // Check if we've reached the max attempts before trying word search
-    if (attemptCount >= MAX_SEARCH_ATTEMPTS) {
-      igdbLogger.info(
-        { query: sanitizedQuery, maxAttempts: MAX_SEARCH_ATTEMPTS },
-        `search reached max attempts`
-      );
-      return [];
-    }
-
-    // If no full-phrase results, try individual words without category filter
+    // If we still have attempts left, add a word-based fallback for missing matches.
     const words = sanitizedQuery
       .toLowerCase()
       .split(" ")
@@ -353,26 +350,42 @@ class IGDBClient {
           { wordCount: wordsToSearch.length, resultCount: wordResults.length },
           `parallel word search found results`
         );
-
-        // Filter to prefer games containing multiple query words
-        const filteredResults = wordResults.filter(
-          (game: IGDBGame) =>
-            words.filter((w) => game.name.toLowerCase().includes(w)).length >=
-            Math.min(2, words.length)
-        );
-
-        // Remove duplicates after merging
-        const uniqueResults = (filteredResults.length > 0 ? filteredResults : wordResults).filter(
-          (game: IGDBGame, index: number, self: IGDBGame[]) =>
-            index === self.findIndex((g) => g.id === game.id)
-        );
-
-        return uniqueResults.slice(0, limit);
+        wordResults.forEach((game) => {
+          if (!collected.has(game.id)) {
+            collected.set(game.id, game);
+          }
+        });
       }
     }
 
-    igdbLogger.info({ query: sanitizedQuery }, `search found no results`);
-    return [];
+    const queryWords = sanitizedQuery
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 0);
+
+    const ranked = Array.from(collected.values()).sort((a, b) => {
+      const aName = a.name.toLowerCase();
+      const bName = b.name.toLowerCase();
+      const aExact = aName === sanitizedQuery.toLowerCase() ? 1 : 0;
+      const bExact = bName === sanitizedQuery.toLowerCase() ? 1 : 0;
+      if (aExact !== bExact) return bExact - aExact;
+
+      const aWordHits = queryWords.filter((w) => aName.includes(w)).length;
+      const bWordHits = queryWords.filter((w) => bName.includes(w)).length;
+      if (aWordHits !== bWordHits) return bWordHits - aWordHits;
+
+      const aRating = a.rating ?? 0;
+      const bRating = b.rating ?? 0;
+      if (aRating !== bRating) return bRating - aRating;
+
+      return a.name.localeCompare(b.name);
+    });
+
+    igdbLogger.info(
+      { query: sanitizedQuery, collected: ranked.length, returned: Math.min(ranked.length, limit) },
+      `search completed with merged results`
+    );
+    return ranked.slice(0, limit);
   }
 
   /**

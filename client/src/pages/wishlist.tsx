@@ -161,69 +161,73 @@ export default function WishlistPage() {
 
   return (
     <div className="h-full overflow-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Wishlist</h1>
-          <p className="text-muted-foreground">Games you want to play</p>
+      <div className="sticky top-0 z-30 -mx-2 mb-6 rounded-xl px-2 py-2 backdrop-blur-md">
+        <div className="glass-surface rounded-xl px-4 py-3 md:px-5">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Wishlist</h1>
+            <p className="text-muted-foreground">Games you want to play</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              {viewMode === "list" && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8 gap-1">
+                      <Settings2 className="h-3.5 w-3.5" />
+                      <span className="sr-only sm:not-sr-only sm:inline-block">
+                        {listDensity === "comfortable"
+                          ? "Comfortable"
+                          : listDensity === "compact"
+                            ? "Compact"
+                            : "Ultra-compact"}
+                      </span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Row Density</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setListDensity("comfortable")}>
+                      Comfortable
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setListDensity("compact")}>
+                      Compact
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setListDensity("ultra-compact")}>
+                      Ultra-compact
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              <ToggleGroup
+                type="single"
+                value={viewMode}
+                onValueChange={(value) => value && setViewMode(value as "grid" | "list")}
+              >
+                <ToggleGroupItem value="grid" aria-label="Grid View">
+                  <LayoutGrid className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="list" aria-label="List View">
+                  <List className="h-4 w-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground hidden sm:inline">Sort by:</span>
+              <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="release-desc">Release Date (Newest)</SelectItem>
+                  <SelectItem value="release-asc">Release Date (Oldest)</SelectItem>
+                  <SelectItem value="added-desc">Recently Added</SelectItem>
+                  <SelectItem value="title-asc">Title (A-Z)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            {viewMode === "list" && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 gap-1">
-                    <Settings2 className="h-3.5 w-3.5" />
-                    <span className="sr-only sm:not-sr-only sm:inline-block">
-                      {listDensity === "comfortable"
-                        ? "Comfortable"
-                        : listDensity === "compact"
-                          ? "Compact"
-                          : "Ultra-compact"}
-                    </span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Row Density</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setListDensity("comfortable")}>
-                    Comfortable
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setListDensity("compact")}>
-                    Compact
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setListDensity("ultra-compact")}>
-                    Ultra-compact
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-            <ToggleGroup
-              type="single"
-              value={viewMode}
-              onValueChange={(value) => value && setViewMode(value as "grid" | "list")}
-            >
-              <ToggleGroupItem value="grid" aria-label="Grid View">
-                <LayoutGrid className="h-4 w-4" />
-              </ToggleGroupItem>
-              <ToggleGroupItem value="list" aria-label="List View">
-                <List className="h-4 w-4" />
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground hidden sm:inline">Sort by:</span>
-            <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="release-desc">Release Date (Newest)</SelectItem>
-                <SelectItem value="release-asc">Release Date (Oldest)</SelectItem>
-                <SelectItem value="added-desc">Recently Added</SelectItem>
-                <SelectItem value="title-asc">Title (A-Z)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
       </div>
 

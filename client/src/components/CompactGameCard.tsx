@@ -1,9 +1,9 @@
 import React, { memo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Info, Star, Calendar, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Download, Info, Star, Calendar, Eye, EyeOff, Loader2, Check, Minus, X } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import StatusBadge, { type GameStatus } from "./StatusBadge";
+import { type GameStatus } from "./StatusBadge";
 import { type Game } from "@shared/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import GameDetailsModal from "./GameDetailsModal";
@@ -11,6 +11,7 @@ import GameDownloadDialog from "./GameDownloadDialog";
 import { mapGameToInsertGame, isDiscoveryId, cn } from "@/lib/utils";
 import { apiRequest, ApiError } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { getConsoleChip, getOwnershipStatusChip } from "@/lib/game-card-presenter";
 
 interface CompactGameCardProps {
   game: Game;
@@ -66,6 +67,9 @@ const CompactGameCard = ({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
   const releaseStatus = getReleaseStatus(game);
+  const statusChip = getOwnershipStatusChip(game.status);
+  const consoleChip = getConsoleChip(game);
+  const StatusIcon = statusChip.icon === "check" ? Check : statusChip.icon === "minus" ? Minus : X;
 
   // Keep track of the resolved game object (either original or newly added)
   const [resolvedGame, setResolvedGame] = useState<Game>(game);
@@ -140,12 +144,11 @@ const CompactGameCard = ({
   return (
     <>
       <div
-        onClick={handleDetailsClick}
         className={cn(
-          "group flex items-center transition-colors hover:bg-accent/50 cursor-pointer",
+          "group relative flex items-center transition-colors hover:bg-accent/50",
           game.hidden && "opacity-60 grayscale",
           density === "comfortable" &&
-            "gap-4 p-3 rounded-lg border bg-card text-card-foreground shadow-sm",
+            "gap-3 p-2.5 rounded-[16px] border border-white/10 bg-slate-950/85 text-card-foreground shadow-sm",
           density === "compact" &&
             "gap-3 py-1.5 px-2 border-b border-slate-700/50 bg-transparent rounded-none",
           density === "ultra-compact" &&
@@ -153,6 +156,18 @@ const CompactGameCard = ({
         )}
         data-testid={`card-game-compact-${game.id}`}
       >
+        {density !== "comfortable" && statusChip.visible && (
+          <Badge
+            variant="outline"
+            className={cn(
+              "absolute right-2 top-2 z-10 h-[22px] w-[22px] rounded-full border-0 bg-white/95 p-0 text-[10px] ring-1.5 flex items-center justify-center",
+              statusChip.className
+            )}
+          >
+            <StatusIcon className="h-3 w-3" strokeWidth={2.8} />
+          </Badge>
+        )}
+
         {/* Cover Image */}
         {density !== "ultra-compact" && (
           <div
@@ -164,10 +179,29 @@ const CompactGameCard = ({
             <img
               src={game.coverUrl || "/placeholder-game-cover.jpg"}
               alt={`${game.title} cover`}
-              className="w-full h-full object-cover"
+              className="w-full h-full cursor-pointer object-cover"
+              onClick={handleDetailsClick}
               loading="lazy"
               data-testid={`img-cover-${game.id}`}
             />
+            {density === "comfortable" && (
+              <div className="absolute inset-x-0 top-0 flex items-start justify-between p-1">
+                <Badge
+                  variant="outline"
+                  className={`h-[26px] rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-normal ${consoleChip.className}`}
+                >
+                  {consoleChip.label}
+                </Badge>
+                {statusChip.visible && (
+                  <Badge
+                    variant="outline"
+                    className={`h-[26px] w-[26px] rounded-full border-0 bg-white/95 p-0 text-[9px] ring-1.5 flex items-center justify-center ${statusChip.className}`}
+                  >
+                    <StatusIcon className="h-3.5 w-3.5" strokeWidth={2.9} />
+                  </Badge>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -175,7 +209,7 @@ const CompactGameCard = ({
         <div
           className={cn(
             "flex-grow min-w-0 flex",
-            density === "ultra-compact" ? "flex-row items-center gap-4" : "flex-col gap-1"
+            density === "ultra-compact" ? "flex-row items-center gap-4" : "flex-col gap-0.5"
           )}
         >
           <div className="flex items-center gap-2 flex-wrap min-w-0">
@@ -188,10 +222,12 @@ const CompactGameCard = ({
             >
               {game.title}
             </h3>
-            {!isDiscovery && game.status && (
-              <div className={density !== "comfortable" ? "scale-90 origin-left" : ""}>
-                <StatusBadge status={game.status} />
-              </div>
+            {density !== "comfortable" && (
+              <>
+                <Badge variant="outline" className={`h-7 px-2 text-[10px] font-bold ${consoleChip.className}`}>
+                  {consoleChip.label}
+                </Badge>
+              </>
             )}
           </div>
 
@@ -255,7 +291,7 @@ const CompactGameCard = ({
 
           {/* Genres (Comfortable Mode) */}
           {density === "comfortable" && (
-            <div className="flex flex-wrap gap-1 mt-1">
+            <div className="mt-0.5 flex flex-wrap gap-1">
               {game.genres && game.genres.length > 0 ? (
                 game.genres.slice(0, 3).map((genre) => (
                   <span key={genre} className="text-[10px] bg-muted px-1.5 py-0.5 rounded-sm">

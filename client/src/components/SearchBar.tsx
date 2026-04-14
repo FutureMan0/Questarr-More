@@ -25,7 +25,6 @@ export default function SearchBar({
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    console.warn(`Search triggered: ${searchQuery}`);
     onSearch?.(searchQuery);
   };
 
@@ -33,7 +32,6 @@ export default function SearchBar({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
-    console.warn(`Search input change: ${value}`);
     onSearch?.(value);
   };
 
@@ -43,12 +41,10 @@ export default function SearchBar({
   };
 
   const handleFilterClick = () => {
-    console.warn("Filter toggle triggered");
     onFilterToggle?.();
   };
 
   const handleRemoveFilter = (filter: string) => {
-    console.warn(`Remove filter triggered: ${filter}`);
     onRemoveFilter?.(filter);
   };
 
@@ -56,13 +52,13 @@ export default function SearchBar({
     <div className="space-y-3">
       <form onSubmit={handleSearch} className="flex gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
             placeholder={placeholder}
             value={searchQuery}
             onChange={handleInputChange}
-            className="pl-10 pr-10"
+            className="h-11 rounded-xl border-border/70 bg-background/70 pl-10 pr-10 backdrop-blur-sm"
             data-testid="input-search"
             aria-label="Search games"
           />
@@ -80,13 +76,20 @@ export default function SearchBar({
             </Button>
           )}
         </div>
-        <Button type="submit" variant="default" data-testid="button-search" aria-label="Search">
+        <Button
+          type="submit"
+          variant="default"
+          className="h-11 rounded-xl px-4"
+          data-testid="button-search"
+          aria-label="Search"
+        >
           <Search className="w-4 h-4" />
         </Button>
         <Button
           type="button"
           variant="outline"
           onClick={handleFilterClick}
+          className="h-11 rounded-xl px-4"
           data-testid="button-filter"
           aria-label="Toggle filters"
         >
@@ -96,6 +99,7 @@ export default function SearchBar({
           type="button"
           variant="outline"
           onClick={onLayoutSettingsToggle}
+          className="h-11 rounded-xl px-4"
           data-testid="button-layout-settings"
           aria-label="Toggle layout settings"
         >

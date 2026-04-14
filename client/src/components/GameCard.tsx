@@ -1,10 +1,10 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Info, Star, Calendar, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Download, Info, Eye, EyeOff, Loader2, Check, Minus, X } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import StatusBadge, { type GameStatus } from "./StatusBadge";
+import { type GameStatus } from "./StatusBadge";
 import { type Game } from "@shared/schema";
 import { useState, memo, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +13,7 @@ import GameDownloadDialog from "./GameDownloadDialog";
 import { mapGameToInsertGame, isDiscoveryId } from "@/lib/utils";
 import { apiRequest, ApiError } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { getConsoleChip, getOwnershipStatusChip } from "@/lib/game-card-presenter";
 
 interface GameCardProps {
   game: Game;
@@ -21,32 +22,7 @@ interface GameCardProps {
   onTrackGame?: (game: Game) => void;
   onToggleHidden?: (gameId: string, hidden: boolean) => void;
   isDiscovery?: boolean;
-}
-
-function getReleaseStatus(game: Game): {
-  label: string;
-  variant: "default" | "secondary" | "outline" | "destructive";
-  isReleased: boolean;
-  className?: string;
-} {
-  if (game.releaseStatus === "delayed") {
-    return { label: "Delayed", variant: "destructive", isReleased: false };
-  }
-
-  if (!game.releaseDate) return { label: "TBA", variant: "secondary", isReleased: false };
-
-  const now = new Date();
-  const release = new Date(game.releaseDate);
-
-  if (release > now) {
-    return { label: "Upcoming", variant: "default", isReleased: false };
-  }
-  return {
-    label: "Released",
-    variant: "outline",
-    isReleased: true,
-    className: "bg-green-500 border-green-600 text-white",
-  };
+  layout?: "grid" | "carousel";
 }
 
 // ⚡ Bolt: Using React.memo to prevent unnecessary re-renders of the GameCard
@@ -56,17 +32,15 @@ const GameCard = ({
   game,
   onStatusChange,
   onViewDetails,
-  onTrackGame,
   onToggleHidden,
   isDiscovery = false,
+  layout = "grid",
 }: GameCardProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
-  const releaseStatus = getReleaseStatus(game);
-
   // Keep track of the resolved game object (either original or newly added)
   const [resolvedGame, setResolvedGame] = useState<Game>(game);
 
@@ -105,22 +79,23 @@ const GameCard = ({
     },
   });
 
+  const statusChip = getOwnershipStatusChip(game.status);
+  const consoleChip = getConsoleChip(game);
+  const isCarouselLayout = layout === "carousel";
+  const StatusIcon = statusChip.icon === "check" ? Check : statusChip.icon === "minus" ? Minus : X;
+
   const handleStatusClick = () => {
-    console.warn(`Status change triggered for game: ${game.title}`);
     const nextStatus: GameStatus =
       game.status === "wanted" ? "owned" : game.status === "owned" ? "completed" : "wanted";
     onStatusChange?.(game.id, nextStatus);
   };
 
   const handleDetailsClick = () => {
-    console.warn(`View details triggered for game: ${game.title}`);
     setDetailsOpen(true);
     onViewDetails?.(game.id);
   };
 
   const handleDownloadClick = async () => {
-    console.warn(`Download triggered for game: ${resolvedGame.title}`);
-
     // If it's a discovery game (temporary ID), add it to library first
     if (isDiscoveryId(resolvedGame.id)) {
       try {
@@ -147,63 +122,38 @@ const GameCard = ({
   return (
     <Card
       ref={cardRef}
-      onClick={handleDetailsClick}
-      className={`group hover-elevate transition-all duration-200 max-w-[225px] mx-auto w-full cursor-pointer ${game.hidden ? "opacity-60 grayscale" : ""}`}
+      className={`group mx-auto flex h-full w-full flex-col overflow-hidden border border-white/10 bg-slate-950/90 transition-all duration-300 hover:-translate-y-0.5 hover:border-white/25 hover:shadow-[0_22px_40px_-28px_rgba(0,0,0,0.95)] ${isCarouselLayout ? "max-w-none rounded-[22px]" : "max-w-[245px] rounded-[18px]"} ${game.hidden ? "opacity-60 grayscale" : ""}`}
       data-testid={`card-game-${game.id}`}
     >
       <div className="relative">
-        {/* ⚡ Bolt: Lazy loading images prevents fetching all game covers upfront,
-            improving initial page load speed, especially on pages with many carousels. */}
         <img
           src={game.coverUrl || "/placeholder-game-cover.jpg"}
           alt={`${game.title} cover`}
-          className="thumbnail-image rounded-t-md"
+          className="aspect-[11/16] w-full cursor-pointer object-cover"
+          onClick={handleDetailsClick}
           loading="lazy"
           data-testid={`img-cover-${game.id}`}
         />
-        <div className="absolute top-2 right-2 flex flex-col gap-1">
-          {!isDiscovery && game.status && <StatusBadge status={game.status} />}
-          {game.status === "wanted" && (
+        <div className="absolute inset-x-0 top-0 flex items-start justify-between p-2.5">
+          <Badge
+            variant="outline"
+            className={`h-8 rounded-full px-3 text-[11px] font-semibold uppercase tracking-normal shadow-sm backdrop-blur-sm ${consoleChip.className}`}
+          >
+            {consoleChip.label}
+          </Badge>
+          {statusChip.visible && (
             <Badge
-              variant={releaseStatus.variant}
-              className={`text-xs ${releaseStatus.className || ""}`}
+              variant="outline"
+              className={`h-8 w-8 rounded-full border-0 bg-white/95 p-0 text-[10px] shadow-md ring-1.5 backdrop-blur-sm flex items-center justify-center ${statusChip.className}`}
             >
-              {releaseStatus.label}
-            </Badge>
-          )}
-          {game.hidden && (
-            <Badge variant="secondary" className="text-xs bg-gray-500 text-white">
-              Hidden
+              <StatusIcon className="h-[18px] w-[18px]" strokeWidth={2.9} />
             </Badge>
           )}
         </div>
         <div
           onClick={(e) => e.stopPropagation()}
-          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200 rounded-t-md flex items-center justify-center gap-2"
+          className={`pointer-events-none absolute inset-0 flex items-center justify-center gap-2 bg-black/60 opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100 ${isCarouselLayout ? "" : "rounded-t-md"}`}
         >
-          {isDiscovery && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="icon"
-                  variant="default"
-                  onClick={handleDownloadClick}
-                  disabled={addGameMutation.isPending}
-                  aria-label={`Download ${game.title}`}
-                  data-testid={`button-download-${game.id}`}
-                >
-                  {addGameMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="w-4 h-4" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Download</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -217,9 +167,38 @@ const GameCard = ({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>View Details</p>
+              <p>Details</p>
             </TooltipContent>
           </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="default"
+                onClick={handleDownloadClick}
+                disabled={addGameMutation.isPending}
+                aria-label={`Download ${game.title}`}
+                data-testid={`button-download-${game.id}`}
+              >
+                {addGameMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Download</p>
+            </TooltipContent>
+          </Tooltip>
+
+          {game.hidden && (
+            <Badge variant="secondary" className="text-xs bg-gray-500 text-white">
+              Hidden
+            </Badge>
+          )}
+
           {!isDiscovery && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -240,80 +219,71 @@ const GameCard = ({
           )}
         </div>
       </div>
-      <CardContent className="p-3" onClick={(e) => e.stopPropagation()}>
+      <CardContent
+        className="flex flex-1 flex-col space-y-2 bg-gradient-to-b from-slate-900/95 to-slate-950/95 p-3"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3
-          className="font-semibold text-sm mb-2 line-clamp-2"
+          className="line-clamp-2 min-h-9 text-sm font-semibold leading-[1.2rem]"
           data-testid={`text-title-${game.id}`}
         >
           {game.title}
         </h3>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-1" tabIndex={0}>
-                <Star className="w-3 h-3 text-accent" aria-hidden="true" />
-                <span data-testid={`text-rating-${game.id}`}>
-                  {game.rating ? `${game.rating}/10` : "N/A"}
-                </span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Rating</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-1" tabIndex={0}>
-                <Calendar className="w-3 h-3" aria-hidden="true" />
-                <span data-testid={`text-release-${game.id}`}>{game.releaseDate || "TBA"}</span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Release Date</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-        <div className="flex flex-wrap gap-1 mb-3">
-          {game.genres?.slice(0, 2).map((genre) => (
-            <span
-              key={genre}
-              className="text-xs bg-muted px-2 py-1 rounded-sm"
-              data-testid={`tag-genre-${genre.toLowerCase()}`}
-            >
-              {genre}
-            </span>
-          )) || <span className="text-xs text-muted-foreground">No genres</span>}
-        </div>
-        {isDiscovery ? (
-          <Button
-            variant="default"
-            size="sm"
-            className="w-full"
-            onClick={() => onTrackGame?.(game)}
-            disabled={addGameMutation.isPending}
-            data-testid={`button-track-${game.id}`}
-          >
-            {addGameMutation.isPending ? (
-              <>
-                <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                Tracking...
-              </>
-            ) : (
-              "Track Game"
-            )}
-          </Button>
-        ) : (
+        {!isCarouselLayout && (
+          <div className="flex min-h-9 flex-wrap content-start gap-1">
+            {game.genres?.slice(0, 2).map((genre) => (
+              <span
+                key={genre}
+                className="rounded-sm bg-muted px-2 py-1 text-[11px] text-muted-foreground"
+                data-testid={`tag-genre-${genre.toLowerCase()}`}
+              >
+                {genre}
+              </span>
+            )) || <span className="text-xs text-muted-foreground">No genres</span>}
+          </div>
+        )}
+
+        {isCarouselLayout && (
+          <p className="line-clamp-1 min-h-3.5 text-xs text-muted-foreground">
+            {game.genres?.[0] || "No genre"}
+          </p>
+        )}
+
+        <div className="mt-auto flex items-center gap-2">
           <Button
             variant="outline"
-            size="sm"
-            className="w-full"
-            onClick={handleStatusClick}
-            data-testid={`button-status-${game.id}`}
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={handleDetailsClick}
+            data-testid={`button-details-inline-${game.id}`}
+            aria-label={`Open details for ${game.title}`}
           >
-            Mark as{" "}
-            {game.status === "wanted" ? "Owned" : game.status === "owned" ? "Completed" : "Wanted"}
+            <Info className="h-4 w-4" />
           </Button>
-        )}
+          <Button
+            variant={isDiscovery ? "default" : "outline"}
+            size="sm"
+            className={`flex-1 ${isDiscovery ? "bg-blue-700 text-blue-50 hover:bg-blue-600" : ""}`}
+            onClick={isDiscovery ? handleDownloadClick : handleStatusClick}
+            disabled={addGameMutation.isPending}
+            data-testid={isDiscovery ? `button-track-${game.id}` : `button-status-${game.id}`}
+          >
+            {isDiscovery ? (
+              addGameMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                  Requesting...
+                </>
+              ) : (
+                "Request"
+              )
+            ) : (
+              `Mark as ${
+                game.status === "wanted" ? "Owned" : game.status === "owned" ? "Completed" : "Wanted"
+              }`
+            )}
+          </Button>
+        </div>
       </CardContent>
 
       {/* ⚡ Bolt: Conditionally render modals only when they are active.

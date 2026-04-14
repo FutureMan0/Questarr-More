@@ -6,9 +6,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/AppSidebar";
 import Header from "@/components/Header";
+import GlobalSearchResults from "@/components/GlobalSearchResults";
 import { useBackgroundNotifications } from "@/hooks/use-background-notifications";
 import { AuthProvider } from "@/lib/auth";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import LoadingFallback from "@/components/LoadingFallback";
 import { ThemeProvider } from "next-themes";
 
@@ -63,6 +64,16 @@ function AppContent() {
 
 function App() {
   const [location, navigate] = useLocation();
+  const [globalSearchQuery, setGlobalSearchQuery] = useState("");
+  const searchableRoutes = new Set([
+    "/",
+    "/discover",
+    "/library",
+    "/downloads",
+    "/calendar",
+    "/wishlist",
+  ]);
+  const canShowGlobalSearchResults = searchableRoutes.has(location) && globalSearchQuery.trim().length > 0;
 
   // Custom sidebar width for the application
   const style = {
@@ -101,6 +112,22 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setGlobalSearchQuery(params.get("q") || "");
+  }, [location]);
+
+  useEffect(() => {
+    const handleGlobalSearch = (event: Event) => {
+      const customEvent = event as CustomEvent<{ query?: string }>;
+      setGlobalSearchQuery(customEvent.detail?.query ?? "");
+    };
+    window.addEventListener("questarr-global-search", handleGlobalSearch);
+    return () => {
+      window.removeEventListener("questarr-global-search", handleGlobalSearch);
+    };
+  }, []);
+
   // If on login or setup page, render simplified layout without sidebar/header
   if (location === "/login" || location === "/setup") {
     return (
@@ -123,10 +150,14 @@ function App() {
             <SidebarProvider style={style as React.CSSProperties}>
               <div className="flex h-screen w-full overflow-hidden">
                 <AppSidebar activeItem={location} onNavigate={navigate} />
-                <div className="flex flex-col flex-1 min-w-0">
+                <div className="flex min-w-0 flex-1 flex-col bg-gradient-to-b from-transparent via-slate-950/30 to-slate-950/45">
                   <Header title={getPageTitle(location)} />
                   <main className="flex-1 overflow-hidden">
-                    <AppContent />
+                    {canShowGlobalSearchResults ? (
+                      <GlobalSearchResults query={globalSearchQuery.trim()} />
+                    ) : (
+                      <AppContent />
+                    )}
                   </main>
                 </div>
               </div>

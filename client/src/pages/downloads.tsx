@@ -300,66 +300,70 @@ export default function Downloads() {
 
   return (
     <div className="h-full overflow-auto p-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Downloads</h1>
-          <p className="text-muted-foreground">Monitor and manage active downloads</p>
-        </div>
-        <Button variant="outline" onClick={() => refetch()} data-testid="button-refresh">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
-      </div>
+      <div className="sticky top-0 z-30 -mx-2 mb-6 rounded-xl px-2 py-2 backdrop-blur-md">
+        <div className="glass-surface rounded-xl px-4 py-4 md:px-5">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-3xl font-bold">Downloads</h1>
+              <p className="text-muted-foreground">Monitor and manage active downloads</p>
+            </div>
+            <Button variant="outline" onClick={() => refetch()} data-testid="button-refresh">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
 
-      {/* Status filter tabs */}
-      <div className="flex flex-col gap-4 mb-6">
-        <div className="flex flex-wrap items-center gap-4">
-          <span className="text-sm font-medium text-muted-foreground">Status:</span>
-          <Tabs
-            value={statusFilter}
-            onValueChange={(value) => setStatusFilter(value as DownloadStatusType | "all")}
-            aria-label="Filter downloads by status"
-          >
-            <TabsList data-testid="filter-tabs">
-              <TabsTrigger value="all" data-testid="filter-all">
-                All
-              </TabsTrigger>
-              <TabsTrigger value="downloading" data-testid="filter-downloading">
-                Downloading
-              </TabsTrigger>
-              <TabsTrigger value="seeding" data-testid="filter-seeding">
-                Seeding
-              </TabsTrigger>
-              <TabsTrigger value="completed" data-testid="filter-completed">
-                Completed
-              </TabsTrigger>
-              <TabsTrigger value="paused" data-testid="filter-paused">
-                Paused
-              </TabsTrigger>
-              <TabsTrigger value="error" data-testid="filter-error">
-                Error
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
+          {/* Status filter tabs */}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="text-sm font-medium text-muted-foreground">Status:</span>
+              <Tabs
+                value={statusFilter}
+                onValueChange={(value) => setStatusFilter(value as DownloadStatusType | "all")}
+                aria-label="Filter downloads by status"
+              >
+                <TabsList data-testid="filter-tabs" className="border border-white/10 bg-slate-900/70">
+                  <TabsTrigger value="all" data-testid="filter-all">
+                    All
+                  </TabsTrigger>
+                  <TabsTrigger value="downloading" data-testid="filter-downloading">
+                    Downloading
+                  </TabsTrigger>
+                  <TabsTrigger value="seeding" data-testid="filter-seeding">
+                    Seeding
+                  </TabsTrigger>
+                  <TabsTrigger value="completed" data-testid="filter-completed">
+                    Completed
+                  </TabsTrigger>
+                  <TabsTrigger value="paused" data-testid="filter-paused">
+                    Paused
+                  </TabsTrigger>
+                  <TabsTrigger value="error" data-testid="filter-error">
+                    Error
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
 
-        <div className="flex flex-wrap items-center gap-4">
-          <span className="text-sm font-medium text-muted-foreground">Protocol:</span>
-          <Tabs
-            value={typeFilter}
-            onValueChange={(value) => setTypeFilter(value as DownloadType | "all")}
-            aria-label="Filter downloads by protocol"
-          >
-            <TabsList>
-              <TabsTrigger value="all">All Protocols</TabsTrigger>
-              <TabsTrigger value="torrent" className="flex items-center gap-2">
-                <Download className="h-3 w-3" /> Torrents
-              </TabsTrigger>
-              <TabsTrigger value="usenet" className="flex items-center gap-2">
-                <Newspaper className="h-3 w-3" /> Usenet
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="text-sm font-medium text-muted-foreground">Protocol:</span>
+              <Tabs
+                value={typeFilter}
+                onValueChange={(value) => setTypeFilter(value as DownloadType | "all")}
+                aria-label="Filter downloads by protocol"
+              >
+                <TabsList className="border border-white/10 bg-slate-900/70">
+                  <TabsTrigger value="all">All Protocols</TabsTrigger>
+                  <TabsTrigger value="torrent" className="flex items-center gap-2">
+                    <Download className="h-3 w-3" /> Torrents
+                  </TabsTrigger>
+                  <TabsTrigger value="usenet" className="flex items-center gap-2">
+                    <Newspaper className="h-3 w-3" /> Usenet
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          </div>
         </div>
       </div>
 
