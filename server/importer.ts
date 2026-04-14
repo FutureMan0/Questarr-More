@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { buildDownloadRoutingMeta } from "../shared/download-routing.js";
-import { releaseMatchesGame } from "../shared/title-utils.js";
+import { cleanReleaseName, releaseMatchesGame } from "../shared/title-utils.js";
 import { logger } from "./logger.js";
 
 const importerLogger = logger.child({ module: "importer" });
@@ -50,18 +50,33 @@ function sanitizePathSegment(input: string): string {
 }
 
 function scoreCandidate(name: string, gameTitle: string): number {
-  if (releaseMatchesGame(name, gameTitle)) return 100;
-
   const normalizedName = normalize(name);
   const normalizedGame = normalize(gameTitle);
+  const scoreByNormalizedMatch = (candidateName: string, maxScore = 80): number => {
+    if (!candidateName || !normalizedGame) return 0;
+    if (candidateName.includes(normalizedGame)) return maxScore;
+    if (normalizedGame.includes(candidateName)) return maxScore - 10;
 
-  if (normalizedName.includes(normalizedGame)) return 80;
-  if (normalizedGame.includes(normalizedName)) return 70;
+    const gameTokens = normalizedGame.split(" ").filter(Boolean);
+    if (gameTokens.length === 0) return 0;
+    const matchedTokens = gameTokens.filter((token) => candidateName.includes(token)).length;
+    return Math.floor((matchedTokens / gameTokens.length) * 60);
+  };
 
-  const gameTokens = normalizedGame.split(" ").filter(Boolean);
-  if (gameTokens.length === 0) return 0;
-  const matchedTokens = gameTokens.filter((token) => normalizedName.includes(token)).length;
-  return Math.floor((matchedTokens / gameTokens.length) * 60);
+  if (releaseMatchesGame(name, gameTitle)) return 100;
+  let score = scoreByNormalizedMatch(normalizedName, 80);
+
+  const cleanedName = cleanReleaseName(name);
+  const normalizedCleanedName = normalize(cleanedName);
+  if (normalizedCleanedName && normalizedCleanedName !== normalizedName) {
+    if (releaseMatchesGame(cleanedName, gameTitle)) {
+      score = Math.max(score, 95);
+    } else {
+      score = Math.max(score, scoreByNormalizedMatch(normalizedCleanedName, 78));
+    }
+  }
+
+  return score;
 }
 
 async function pathExists(targetPath: string): Promise<boolean> {
