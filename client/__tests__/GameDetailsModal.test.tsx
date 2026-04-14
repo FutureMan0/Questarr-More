@@ -26,15 +26,19 @@ vi.mock("../src/components/GameDownloadDialog", () => ({
     ),
 }));
 
-vi.mock("lucide-react", () => ({
-    Calendar: (props: Record<string, unknown>) => <div data-testid="icon-calendar" {...props} />,
-    Star: (props: Record<string, unknown>) => <div data-testid="icon-star" {...props} />,
-    Monitor: (props: Record<string, unknown>) => <div data-testid="icon-monitor" {...props} />,
-    Gamepad2: (props: Record<string, unknown>) => <div data-testid="icon-gamepad2" {...props} />,
-    Tag: (props: Record<string, unknown>) => <div data-testid="icon-tag" {...props} />,
-    Download: (props: Record<string, unknown>) => <div data-testid="icon-download" {...props} />,
-    X: (props: Record<string, unknown>) => <div data-testid="icon-x" {...props} />,
-}));
+vi.mock("lucide-react", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("lucide-react")>();
+    return {
+        ...actual,
+        Calendar: (props: Record<string, unknown>) => <div data-testid="icon-calendar" {...props} />,
+        Star: (props: Record<string, unknown>) => <div data-testid="icon-star" {...props} />,
+        Monitor: (props: Record<string, unknown>) => <div data-testid="icon-monitor" {...props} />,
+        Gamepad2: (props: Record<string, unknown>) => <div data-testid="icon-gamepad2" {...props} />,
+        Tag: (props: Record<string, unknown>) => <div data-testid="icon-tag" {...props} />,
+        Download: (props: Record<string, unknown>) => <div data-testid="icon-download" {...props} />,
+        X: (props: Record<string, unknown>) => <div data-testid="icon-x" {...props} />,
+    };
+});
 
 const mockGame = {
     id: 1,
