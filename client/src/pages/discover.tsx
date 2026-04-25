@@ -172,15 +172,18 @@ export default function DiscoverPage() {
     (games: Game[]) => {
       return games
         .filter((g: Game) => {
-          if (hiddenIgdbIds.has(g.igdbId)) return false;
+          if (typeof g.igdbId === "number" && hiddenIgdbIds.has(g.igdbId)) return false;
 
-          if (hideOwned && ownedIgdbIds.has(g.igdbId)) return false;
+          if (hideOwned && typeof g.igdbId === "number" && ownedIgdbIds.has(g.igdbId)) return false;
 
-          if (hideWanted && wantedIgdbIds.has(g.igdbId)) return false;
+          if (hideWanted && typeof g.igdbId === "number" && wantedIgdbIds.has(g.igdbId)) {
+            return false;
+          }
 
           return true;
         })
         .map((g: Game) => {
+          if (typeof g.igdbId !== "number") return g;
           const localMatch = igdbToLocalGameMap.get(g.igdbId);
           if (!localMatch) return g;
 
@@ -914,7 +917,9 @@ export default function DiscoverPage() {
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="text-xl font-semibold">By Platform</h2>
-                  {isFetchingPlatforms && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                  {isFetchingPlatforms && (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  )}
                 </div>
                 <div className="overflow-x-auto pb-1" data-testid="platform-chip-slider">
                   <div className="glass-surface inline-flex min-w-max items-center gap-2 rounded-xl px-2 py-2">
@@ -950,7 +955,10 @@ export default function DiscoverPage() {
                 isLoading={isLoadingPlatformGames}
                 isFetching={isFetchingPlatformGames}
               />
-              <div className="flex flex-col items-center justify-center gap-2 py-2" ref={platformSentinelRef}>
+              <div
+                className="flex flex-col items-center justify-center gap-2 py-2"
+                ref={platformSentinelRef}
+              >
                 {isFetchingNextPage && (
                   <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -958,7 +966,9 @@ export default function DiscoverPage() {
                   </div>
                 )}
                 {!isLoadingPlatformGames && !hasNextPage && platformGames.length > 0 && (
-                  <p className="text-xs text-muted-foreground">No more {selectedPlatform} games available.</p>
+                  <p className="text-xs text-muted-foreground">
+                    No more {selectedPlatform} games available.
+                  </p>
                 )}
               </div>
               <div className="flex justify-end">

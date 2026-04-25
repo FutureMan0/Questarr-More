@@ -21,7 +21,10 @@ interface GameCardProps {
   onViewDetails?: (gameId: string) => void;
   onTrackGame?: (game: Game) => void;
   onToggleHidden?: (gameId: string, hidden: boolean) => void;
+  onRequestSearch?: (gameId: string) => void;
+  onRemoveRequest?: (gameId: string) => void;
   isDiscovery?: boolean;
+  isRequestView?: boolean;
   layout?: "grid" | "carousel";
 }
 
@@ -138,9 +141,10 @@ const GameCard = ({
       return;
     }
 
-    const detailsId = isDiscoveryId(resolvedGame.id) && resolvedGame.igdbId
-      ? `igdb-${resolvedGame.igdbId}`
-      : resolvedGame.id;
+    const detailsId =
+      isDiscoveryId(resolvedGame.id) && resolvedGame.igdbId
+        ? `igdb-${resolvedGame.igdbId}`
+        : resolvedGame.id;
     navigate(`/games/${detailsId}`);
     onViewDetails?.(game.id);
   };
@@ -344,7 +348,11 @@ const GameCard = ({
               )
             ) : (
               `Mark as ${
-                game.status === "wanted" ? "Owned" : game.status === "owned" ? "Completed" : "Wanted"
+                game.status === "wanted"
+                  ? "Owned"
+                  : game.status === "owned"
+                    ? "Completed"
+                    : "Wanted"
               }`
             )}
           </Button>

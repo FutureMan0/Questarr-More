@@ -1,6 +1,17 @@
 import React, { memo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Info, Star, Calendar, Eye, EyeOff, Loader2, Check, Minus, X } from "lucide-react";
+import {
+  Download,
+  Info,
+  Star,
+  Calendar,
+  Eye,
+  EyeOff,
+  Loader2,
+  Check,
+  Minus,
+  X,
+} from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { type GameStatus } from "./StatusBadge";
@@ -18,7 +29,10 @@ interface CompactGameCardProps {
   onStatusChange?: (gameId: string, newStatus: GameStatus) => void;
   onViewDetails?: (gameId: string) => void;
   onToggleHidden?: (gameId: string, hidden: boolean) => void;
+  onRequestSearch?: (gameId: string) => void;
+  onRemoveRequest?: (gameId: string) => void;
   isDiscovery?: boolean;
+  isRequestView?: boolean;
   density?: "comfortable" | "compact" | "ultra-compact";
 }
 
@@ -228,7 +242,10 @@ const CompactGameCard = ({
             </h3>
             {density !== "comfortable" && (
               <>
-                <Badge variant="outline" className={`h-7 px-2 text-[10px] font-bold ${consoleChip.className}`}>
+                <Badge
+                  variant="outline"
+                  className={`h-7 px-2 text-[10px] font-bold ${consoleChip.className}`}
+                >
                   {consoleChip.label}
                 </Badge>
               </>
